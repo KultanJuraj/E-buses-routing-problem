@@ -1,0 +1,3317 @@
+{
+ "name": "kcm_medium",
+ "meta": {
+  "source": "King County Metro GTFS (Feb 2020) via github.com/dan-mccabe/beb-chargers-pactrans",
+  "service_id": "86021",
+  "generated_utc": "2026-10-10T08:36:31+00:00",
+  "units": {
+   "time": "minutes after service-day midnight",
+   "distance": "km",
+   "energy": "kWh",
+   "power": "kW"
+  },
+  "n_trips": 133,
+  "n_chargers": 17,
+  "notes": [
+   "Terminal coordinates come from shape endpoints (stops.txt not in repo).",
+   "Deadheads are straight-line distance * detour_factor at deadhead_speed_kmh.",
+   "baseline_blocks lists the operator's real blocks restricted to the selected trips; a block is complete only if the instance was built with whole_blocks=True.",
+   "Depot location is synthetic (centroid of terminals)."
+  ]
+ },
+ "assumptions": {
+  "battery_kwh": 419.40000000000003,
+  "kwh_per_km": 1.8641135767120018,
+  "soc_min": 0.1,
+  "soc_max": 1.0,
+  "soc_start": 1.0,
+  "site_charger_kw": 300.0,
+  "chargers_per_site": 1,
+  "depot_charger_kw": 150.0,
+  "depot_chargers": 10,
+  "charge_efficiency": 0.9,
+  "min_charge_min": 5.0,
+  "detour_factor": 1.3,
+  "deadhead_speed_kmh": 30.0,
+  "min_layover_min": 5.0,
+  "slot_min": 15,
+  "tariff_day": 0.2,
+  "tariff_night": 0.1,
+  "night_start_h": 22.0,
+  "night_end_h": 6.0,
+  "vehicle_cost": 500.0,
+  "deadhead_cost_per_km": 1.5
+ },
+ "locations": [
+  {
+   "id": "T11130",
+   "type": "terminal",
+   "stop_id": "11130",
+   "lat": 47.6124268,
+   "lon": -122.331413
+  },
+  {
+   "id": "T1215",
+   "type": "terminal",
+   "stop_id": "1215",
+   "lat": 47.6097107,
+   "lon": -122.334595
+  },
+  {
+   "id": "T57454",
+   "type": "terminal",
+   "stop_id": "57454",
+   "lat": 47.3851852,
+   "lon": -122.232307
+  },
+  {
+   "id": "T57458",
+   "type": "terminal",
+   "stop_id": "57458",
+   "lat": 47.38377,
+   "lon": -122.232376
+  },
+  {
+   "id": "DEPOT",
+   "type": "depot",
+   "lat": 47.497773175,
+   "lon": -122.28267274999999,
+   "synthetic": true
+  },
+  {
+   "id": "S1",
+   "type": "charger_site",
+   "name": "Burien Transit Center",
+   "lat": 47.4693256,
+   "lon": -122.3403857
+  },
+  {
+   "id": "S2",
+   "type": "charger_site",
+   "name": "Highline Community College",
+   "lat": 47.39013,
+   "lon": -122.294324
+  },
+  {
+   "id": "S3",
+   "type": "charger_site",
+   "name": "Kent Transit Center",
+   "lat": 47.3836401,
+   "lon": -122.2346441
+  },
+  {
+   "id": "S4",
+   "type": "charger_site",
+   "name": "Auburn Transit Center",
+   "lat": 47.3069193,
+   "lon": -122.2316235
+  },
+  {
+   "id": "S5",
+   "type": "charger_site",
+   "name": "South Renton P&R",
+   "lat": 47.4718414,
+   "lon": -122.2147887
+  },
+  {
+   "id": "S6",
+   "type": "charger_site",
+   "name": "Green River Community College",
+   "lat": 47.313004,
+   "lon": -122.1805591
+  },
+  {
+   "id": "S7",
+   "type": "charger_site",
+   "name": "Federal Way Transit Center",
+   "lat": 47.3179917,
+   "lon": -122.3056636
+  }
+ ],
+ "chargers": [
+  {
+   "id": "DEPOT-C1",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C2",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C3",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C4",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C5",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C6",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C7",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C8",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C9",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "DEPOT-C10",
+   "location": "DEPOT",
+   "station": "DEPOT",
+   "power_kw": 150.0
+  },
+  {
+   "id": "S1-C1",
+   "location": "S1",
+   "station": "S1",
+   "power_kw": 300.0
+  },
+  {
+   "id": "S2-C1",
+   "location": "S2",
+   "station": "S2",
+   "power_kw": 300.0
+  },
+  {
+   "id": "S3-C1",
+   "location": "S3",
+   "station": "S3",
+   "power_kw": 300.0
+  },
+  {
+   "id": "S4-C1",
+   "location": "S4",
+   "station": "S4",
+   "power_kw": 300.0
+  },
+  {
+   "id": "S5-C1",
+   "location": "S5",
+   "station": "S5",
+   "power_kw": 300.0
+  },
+  {
+   "id": "S6-C1",
+   "location": "S6",
+   "station": "S6",
+   "power_kw": 300.0
+  },
+  {
+   "id": "S7-C1",
+   "location": "S7",
+   "station": "S7",
+   "power_kw": 300.0
+  }
+ ],
+ "trips": [
+  {
+   "id": "39170876",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 285.0,
+   "arr_min": 347.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170877",
+   "route": "150",
+   "block_id": "5654175",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 312.0,
+   "arr_min": 374.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170993",
+   "route": "150",
+   "block_id": "5654177",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 313.0,
+   "arr_min": 371.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170867",
+   "route": "150",
+   "block_id": "5654180",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 329.0,
+   "arr_min": 391.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170979",
+   "route": "150",
+   "block_id": "5654186",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 343.0,
+   "arr_min": 403.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170870",
+   "route": "150",
+   "block_id": "5654187",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 346.0,
+   "arr_min": 408.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170864",
+   "route": "150",
+   "block_id": "5654191",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 358.0,
+   "arr_min": 422.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170998",
+   "route": "150",
+   "block_id": "5654190",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 358.0,
+   "arr_min": 418.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39468707",
+   "route": "150",
+   "block_id": "5654194",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 370.0,
+   "arr_min": 436.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170970",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 373.0,
+   "arr_min": 433.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170871",
+   "route": "150",
+   "block_id": "5654201",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 382.0,
+   "arr_min": 450.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170994",
+   "route": "150",
+   "block_id": "5654172",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 388.0,
+   "arr_min": 449.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170857",
+   "route": "150",
+   "block_id": "5654177",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 394.0,
+   "arr_min": 462.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171011",
+   "route": "150",
+   "block_id": "5654175",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 403.0,
+   "arr_min": 465.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170863",
+   "route": "150",
+   "block_id": "5654206",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 406.0,
+   "arr_min": 475.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170924",
+   "route": "150",
+   "block_id": "5654208",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 418.0,
+   "arr_min": 489.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170986",
+   "route": "150",
+   "block_id": "5654176",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 418.0,
+   "arr_min": 481.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39468704",
+   "route": "150",
+   "block_id": "5654186",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 430.0,
+   "arr_min": 501.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170969",
+   "route": "150",
+   "block_id": "5654187",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 433.0,
+   "arr_min": 496.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170922",
+   "route": "150",
+   "block_id": "5654190",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 442.0,
+   "arr_min": 514.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170959",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 447.0,
+   "arr_min": 511.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170896",
+   "route": "150",
+   "block_id": "5654184",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 454.0,
+   "arr_min": 526.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170996",
+   "route": "150",
+   "block_id": "5654194",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 462.0,
+   "arr_min": 526.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170897",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 466.0,
+   "arr_min": 541.0,
+   "dist_km": 34.852,
+   "energy_kwh": 64.968
+  },
+  {
+   "id": "39171005",
+   "route": "150",
+   "block_id": "5654193",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 477.0,
+   "arr_min": 538.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170893",
+   "route": "150",
+   "block_id": "5654172",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 481.0,
+   "arr_min": 553.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170997",
+   "route": "150",
+   "block_id": "5654206",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 492.0,
+   "arr_min": 553.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170892",
+   "route": "150",
+   "block_id": "5654175",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 497.0,
+   "arr_min": 569.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171010",
+   "route": "150",
+   "block_id": "5654205",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 505.0,
+   "arr_min": 568.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171035",
+   "route": "150",
+   "block_id": "5654176",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 511.0,
+   "arr_min": 583.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171003",
+   "route": "150",
+   "block_id": "5654186",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 520.0,
+   "arr_min": 584.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171036",
+   "route": "150",
+   "block_id": "5654187",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 526.0,
+   "arr_min": 598.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171008",
+   "route": "150",
+   "block_id": "5654190",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 535.0,
+   "arr_min": 600.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170855",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 542.0,
+   "arr_min": 614.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171004",
+   "route": "150",
+   "block_id": "5654184",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 550.0,
+   "arr_min": 615.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170861",
+   "route": "150",
+   "block_id": "5654194",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 556.0,
+   "arr_min": 628.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171007",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 565.0,
+   "arr_min": 630.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170940",
+   "route": "150",
+   "block_id": "5654193",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 570.0,
+   "arr_min": 642.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170809",
+   "route": "150",
+   "block_id": "5654172",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 580.0,
+   "arr_min": 645.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170939",
+   "route": "150",
+   "block_id": "5654206",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 584.0,
+   "arr_min": 656.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170847",
+   "route": "150",
+   "block_id": "5654175",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 595.0,
+   "arr_min": 660.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171023",
+   "route": "150",
+   "block_id": "5654205",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 602.0,
+   "arr_min": 674.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170983",
+   "route": "150",
+   "block_id": "5654176",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 610.0,
+   "arr_min": 676.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171024",
+   "route": "150",
+   "block_id": "5654186",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 617.0,
+   "arr_min": 689.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170845",
+   "route": "150",
+   "block_id": "5654187",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 625.0,
+   "arr_min": 691.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170854",
+   "route": "150",
+   "block_id": "5654190",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 632.0,
+   "arr_min": 704.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170808",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 640.0,
+   "arr_min": 707.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170860",
+   "route": "150",
+   "block_id": "5654184",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 647.0,
+   "arr_min": 719.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170936",
+   "route": "150",
+   "block_id": "5654194",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 654.0,
+   "arr_min": 722.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170927",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 662.0,
+   "arr_min": 736.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170932",
+   "route": "150",
+   "block_id": "5654200",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 668.0,
+   "arr_min": 736.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170930",
+   "route": "150",
+   "block_id": "5654172",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 677.0,
+   "arr_min": 751.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170843",
+   "route": "150",
+   "block_id": "5654179",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 683.0,
+   "arr_min": 751.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170851",
+   "route": "150",
+   "block_id": "5654175",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 692.0,
+   "arr_min": 766.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170825",
+   "route": "150",
+   "block_id": "5654180",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 698.0,
+   "arr_min": 766.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170859",
+   "route": "150",
+   "block_id": "5654176",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 707.0,
+   "arr_min": 781.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170980",
+   "route": "150",
+   "block_id": "5654181",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 713.0,
+   "arr_min": 781.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170875",
+   "route": "150",
+   "block_id": "5654187",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 722.0,
+   "arr_min": 796.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170978",
+   "route": "150",
+   "block_id": "5654188",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 728.0,
+   "arr_min": 796.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170873",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 737.0,
+   "arr_min": 811.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170824",
+   "route": "150",
+   "block_id": "5654191",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 742.0,
+   "arr_min": 811.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171032",
+   "route": "150",
+   "block_id": "5654194",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 752.0,
+   "arr_min": 826.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170841",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 756.0,
+   "arr_min": 826.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171031",
+   "route": "150",
+   "block_id": "5654200",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 768.0,
+   "arr_min": 842.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170967",
+   "route": "150",
+   "block_id": "5654183",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 769.0,
+   "arr_min": 840.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170823",
+   "route": "150",
+   "block_id": "5654172",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 780.0,
+   "arr_min": 851.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170890",
+   "route": "150",
+   "block_id": "5654179",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 783.0,
+   "arr_min": 857.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170830",
+   "route": "150",
+   "block_id": "5654175",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 793.0,
+   "arr_min": 864.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170891",
+   "route": "150",
+   "block_id": "5654180",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 796.0,
+   "arr_min": 870.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170822",
+   "route": "150",
+   "block_id": "5654176",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 808.0,
+   "arr_min": 879.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171026",
+   "route": "150",
+   "block_id": "5654181",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 811.0,
+   "arr_min": 885.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170829",
+   "route": "150",
+   "block_id": "5654187",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 822.0,
+   "arr_min": 892.0,
+   "dist_km": 34.341,
+   "energy_kwh": 64.016
+  },
+  {
+   "id": "39171025",
+   "route": "150",
+   "block_id": "5654188",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 826.0,
+   "arr_min": 900.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171020",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 837.0,
+   "arr_min": 908.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170926",
+   "route": "150",
+   "block_id": "5654191",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 841.0,
+   "arr_min": 916.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170931",
+   "route": "150",
+   "block_id": "5654194",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 852.0,
+   "arr_min": 925.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170929",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 856.0,
+   "arr_min": 931.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170820",
+   "route": "150",
+   "block_id": "5654200",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 868.0,
+   "arr_min": 942.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170949",
+   "route": "150",
+   "block_id": "5654183",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 871.0,
+   "arr_min": 946.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170819",
+   "route": "150",
+   "block_id": "5654179",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 883.0,
+   "arr_min": 958.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170950",
+   "route": "150",
+   "block_id": "5654172",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 886.0,
+   "arr_min": 961.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170933",
+   "route": "150",
+   "block_id": "5654180",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 899.0,
+   "arr_min": 975.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170956",
+   "route": "150",
+   "block_id": "5654175",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 901.0,
+   "arr_min": 978.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170818",
+   "route": "150",
+   "block_id": "5654181",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 915.0,
+   "arr_min": 993.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171015",
+   "route": "150",
+   "block_id": "5654176",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 916.0,
+   "arr_min": 994.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171000",
+   "route": "150",
+   "block_id": "5654178",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 930.0,
+   "arr_min": 1008.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170965",
+   "route": "150",
+   "block_id": "5654187",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 931.0,
+   "arr_min": 1010.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170964",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 946.0,
+   "arr_min": 1025.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171014",
+   "route": "150",
+   "block_id": "5654211",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 946.0,
+   "arr_min": 1024.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170816",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 959.0,
+   "arr_min": 1038.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170895",
+   "route": "150",
+   "block_id": "5654194",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 961.0,
+   "arr_min": 1040.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170807",
+   "route": "150",
+   "block_id": "5654214",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 975.0,
+   "arr_min": 1054.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170894",
+   "route": "150",
+   "block_id": "5654200",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 976.0,
+   "arr_min": 1055.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170862",
+   "route": "150",
+   "block_id": "5654193",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 989.0,
+   "arr_min": 1067.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170941",
+   "route": "150",
+   "block_id": "5654179",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 991.0,
+   "arr_min": 1070.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170972",
+   "route": "150",
+   "block_id": "5654192",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1005.0,
+   "arr_min": 1081.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170942",
+   "route": "150",
+   "block_id": "5654180",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1006.0,
+   "arr_min": 1085.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170806",
+   "route": "150",
+   "block_id": "5654176",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1018.0,
+   "arr_min": 1090.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170947",
+   "route": "150",
+   "block_id": "5654181",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1021.0,
+   "arr_min": 1098.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170914",
+   "route": "150",
+   "block_id": "5654187",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1033.0,
+   "arr_min": 1104.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170948",
+   "route": "150",
+   "block_id": "5654178",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1036.0,
+   "arr_min": 1113.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170805",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1049.0,
+   "arr_min": 1119.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171019",
+   "route": "150",
+   "block_id": "5654211",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1051.0,
+   "arr_min": 1124.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171013",
+   "route": "150",
+   "block_id": "5654173",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1066.0,
+   "arr_min": 1136.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171009",
+   "route": "150",
+   "block_id": "5654204",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1069.0,
+   "arr_min": 1138.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171016",
+   "route": "150",
+   "block_id": "5654214",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1081.0,
+   "arr_min": 1149.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170804",
+   "route": "150",
+   "block_id": "5654179",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1088.0,
+   "arr_min": 1155.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170990",
+   "route": "150",
+   "block_id": "5654193",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1096.0,
+   "arr_min": 1164.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170973",
+   "route": "150",
+   "block_id": "5654180",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1108.0,
+   "arr_min": 1173.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170920",
+   "route": "150",
+   "block_id": "5654176",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1126.0,
+   "arr_min": 1192.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171002",
+   "route": "150",
+   "block_id": "5654213",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1128.0,
+   "arr_min": 1192.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170834",
+   "route": "150",
+   "block_id": "5654211",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1149.0,
+   "arr_min": 1212.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170907",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1156.0,
+   "arr_min": 1220.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170946",
+   "route": "150",
+   "block_id": "5654219",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1172.0,
+   "arr_min": 1234.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170944",
+   "route": "150",
+   "block_id": "5654179",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1186.0,
+   "arr_min": 1250.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170803",
+   "route": "150",
+   "block_id": "5654217",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1204.0,
+   "arr_min": 1264.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170943",
+   "route": "150",
+   "block_id": "5654213",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1216.0,
+   "arr_min": 1280.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170832",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1237.0,
+   "arr_min": 1294.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171028",
+   "route": "150",
+   "block_id": "5654211",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1246.0,
+   "arr_min": 1307.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170812",
+   "route": "150",
+   "block_id": "5654179",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1268.0,
+   "arr_min": 1324.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171029",
+   "route": "150",
+   "block_id": "5654219",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1276.0,
+   "arr_min": 1336.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170937",
+   "route": "150",
+   "block_id": "5654213",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1298.0,
+   "arr_min": 1354.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170981",
+   "route": "150",
+   "block_id": "5654217",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1306.0,
+   "arr_min": 1366.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170831",
+   "route": "150",
+   "block_id": "5654211",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1328.0,
+   "arr_min": 1384.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170971",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1336.0,
+   "arr_min": 1396.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39171030",
+   "route": "150",
+   "block_id": "5654219",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1358.0,
+   "arr_min": 1411.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170904",
+   "route": "150",
+   "block_id": "5654217",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1388.0,
+   "arr_min": 1441.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170991",
+   "route": "150",
+   "block_id": "5654213",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1396.0,
+   "arr_min": 1456.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170905",
+   "route": "150",
+   "block_id": "5654195",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1418.0,
+   "arr_min": 1471.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39171012",
+   "route": "150",
+   "block_id": "5654219",
+   "direction_id": "1",
+   "start": "T57458",
+   "end": "T11130",
+   "dep_min": 1451.0,
+   "arr_min": 1511.0,
+   "dist_km": 31.752,
+   "energy_kwh": 59.189
+  },
+  {
+   "id": "39170802",
+   "route": "150",
+   "block_id": "5654218",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1465.0,
+   "arr_min": 1518.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "39170848",
+   "route": "150",
+   "block_id": "5654217",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1523.0,
+   "arr_min": 1576.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  },
+  {
+   "id": "44252964",
+   "route": "150",
+   "block_id": "5654219",
+   "direction_id": "0",
+   "start": "T1215",
+   "end": "T57454",
+   "dep_min": 1575.0,
+   "arr_min": 1628.0,
+   "dist_km": 31.241,
+   "energy_kwh": 58.237
+  }
+ ],
+ "deadhead": {
+  "T11130": {
+   "T11130": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "T1215": {
+    "km": 0.5,
+    "min": 1.0
+   },
+   "T57454": {
+    "km": 34.245,
+    "min": 68.49
+   },
+   "T57458": {
+    "km": 34.439,
+    "min": 68.88
+   },
+   "DEPOT": {
+    "km": 17.242,
+    "min": 34.48
+   },
+   "S1": {
+    "km": 20.704,
+    "min": 41.41
+   },
+   "S2": {
+    "km": 32.337,
+    "min": 64.67
+   },
+   "S3": {
+    "km": 34.396,
+    "min": 68.79
+   },
+   "S4": {
+    "km": 45.226,
+    "min": 90.45
+   },
+   "S5": {
+    "km": 23.292,
+    "min": 46.58
+   },
+   "S6": {
+    "km": 45.725,
+    "min": 91.45
+   },
+   "S7": {
+    "km": 42.636,
+    "min": 85.27
+   }
+  },
+  "T1215": {
+   "T11130": {
+    "km": 0.5,
+    "min": 1.0
+   },
+   "T1215": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "T57454": {
+    "km": 33.959,
+    "min": 67.92
+   },
+   "T57458": {
+    "km": 34.152,
+    "min": 68.3
+   },
+   "DEPOT": {
+    "km": 16.955,
+    "min": 33.91
+   },
+   "S1": {
+    "km": 20.301,
+    "min": 40.6
+   },
+   "S2": {
+    "km": 31.984,
+    "min": 63.97
+   },
+   "S3": {
+    "km": 34.106,
+    "min": 68.21
+   },
+   "S4": {
+    "km": 44.912,
+    "min": 89.82
+   },
+   "S5": {
+    "km": 23.106,
+    "min": 46.21
+   },
+   "S6": {
+    "km": 45.455,
+    "min": 90.91
+   },
+   "S7": {
+    "km": 42.264,
+    "min": 84.53
+   }
+  },
+  "T57454": {
+   "T11130": {
+    "km": 34.245,
+    "min": 68.49
+   },
+   "T1215": {
+    "km": 33.959,
+    "min": 67.92
+   },
+   "T57454": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "T57458": {
+    "km": 0.205,
+    "min": 0.41
+   },
+   "DEPOT": {
+    "km": 17.004,
+    "min": 34.01
+   },
+   "S1": {
+    "km": 16.114,
+    "min": 32.23
+   },
+   "S2": {
+    "km": 6.111,
+    "min": 12.22
+   },
+   "S3": {
+    "km": 0.32,
+    "min": 0.64
+   },
+   "S4": {
+    "km": 11.314,
+    "min": 22.63
+   },
+   "S5": {
+    "km": 12.643,
+    "min": 25.29
+   },
+   "S6": {
+    "km": 11.6,
+    "min": 23.2
+   },
+   "S7": {
+    "km": 12.081,
+    "min": 24.16
+   }
+  },
+  "T57458": {
+   "T11130": {
+    "km": 34.439,
+    "min": 68.88
+   },
+   "T1215": {
+    "km": 34.152,
+    "min": 68.3
+   },
+   "T57454": {
+    "km": 0.205,
+    "min": 0.41
+   },
+   "T57458": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "DEPOT": {
+    "km": 17.198,
+    "min": 34.4
+   },
+   "S1": {
+    "km": 16.264,
+    "min": 32.53
+   },
+   "S2": {
+    "km": 6.132,
+    "min": 12.26
+   },
+   "S3": {
+    "km": 0.223,
+    "min": 0.45
+   },
+   "S4": {
+    "km": 11.109,
+    "min": 22.22
+   },
+   "S5": {
+    "km": 12.847,
+    "min": 25.69
+   },
+   "S6": {
+    "km": 11.419,
+    "min": 22.84
+   },
+   "S7": {
+    "km": 11.913,
+    "min": 23.83
+   }
+  },
+  "DEPOT": {
+   "T11130": {
+    "km": 17.242,
+    "min": 34.48
+   },
+   "T1215": {
+    "km": 16.955,
+    "min": 33.91
+   },
+   "T57454": {
+    "km": 17.004,
+    "min": 34.01
+   },
+   "T57458": {
+    "km": 17.198,
+    "min": 34.4
+   },
+   "DEPOT": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "S1": {
+    "km": 6.978,
+    "min": 13.96
+   },
+   "S2": {
+    "km": 15.602,
+    "min": 31.2
+   },
+   "S3": {
+    "km": 17.154,
+    "min": 34.31
+   },
+   "S4": {
+    "km": 28.037,
+    "min": 56.07
+   },
+   "S5": {
+    "km": 7.618,
+    "min": 15.24
+   },
+   "S6": {
+    "km": 28.516,
+    "min": 57.03
+   },
+   "S7": {
+    "km": 26.085,
+    "min": 52.17
+   }
+  },
+  "S1": {
+   "T11130": {
+    "km": 20.704,
+    "min": 41.41
+   },
+   "T1215": {
+    "km": 20.301,
+    "min": 40.6
+   },
+   "T57454": {
+    "km": 16.114,
+    "min": 32.23
+   },
+   "T57458": {
+    "km": 16.264,
+    "min": 32.53
+   },
+   "DEPOT": {
+    "km": 6.978,
+    "min": 13.96
+   },
+   "S1": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "S2": {
+    "km": 12.302,
+    "min": 24.6
+   },
+   "S3": {
+    "km": 16.135,
+    "min": 32.27
+   },
+   "S4": {
+    "km": 25.777,
+    "min": 51.55
+   },
+   "S5": {
+    "km": 12.278,
+    "min": 24.56
+   },
+   "S6": {
+    "km": 27.482,
+    "min": 54.96
+   },
+   "S7": {
+    "km": 22.138,
+    "min": 44.28
+   }
+  },
+  "S2": {
+   "T11130": {
+    "km": 32.337,
+    "min": 64.67
+   },
+   "T1215": {
+    "km": 31.984,
+    "min": 63.97
+   },
+   "T57454": {
+    "km": 6.111,
+    "min": 12.22
+   },
+   "T57458": {
+    "km": 6.132,
+    "min": 12.26
+   },
+   "DEPOT": {
+    "km": 15.602,
+    "min": 31.2
+   },
+   "S1": {
+    "km": 12.302,
+    "min": 24.6
+   },
+   "S2": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "S3": {
+    "km": 5.916,
+    "min": 11.83
+   },
+   "S4": {
+    "km": 13.505,
+    "min": 27.01
+   },
+   "S5": {
+    "km": 14.142,
+    "min": 28.28
+   },
+   "S6": {
+    "km": 15.762,
+    "min": 31.52
+   },
+   "S7": {
+    "km": 10.487,
+    "min": 20.97
+   }
+  },
+  "S3": {
+   "T11130": {
+    "km": 34.396,
+    "min": 68.79
+   },
+   "T1215": {
+    "km": 34.106,
+    "min": 68.21
+   },
+   "T57454": {
+    "km": 0.32,
+    "min": 0.64
+   },
+   "T57458": {
+    "km": 0.223,
+    "min": 0.45
+   },
+   "DEPOT": {
+    "km": 17.154,
+    "min": 34.31
+   },
+   "S1": {
+    "km": 16.135,
+    "min": 32.27
+   },
+   "S2": {
+    "km": 5.916,
+    "min": 11.83
+   },
+   "S3": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "S4": {
+    "km": 11.094,
+    "min": 22.19
+   },
+   "S5": {
+    "km": 12.897,
+    "min": 25.79
+   },
+   "S6": {
+    "km": 11.503,
+    "min": 23.01
+   },
+   "S7": {
+    "km": 11.766,
+    "min": 23.53
+   }
+  },
+  "S4": {
+   "T11130": {
+    "km": 45.226,
+    "min": 90.45
+   },
+   "T1215": {
+    "km": 44.912,
+    "min": 89.82
+   },
+   "T57454": {
+    "km": 11.314,
+    "min": 22.63
+   },
+   "T57458": {
+    "km": 11.109,
+    "min": 22.22
+   },
+   "DEPOT": {
+    "km": 28.037,
+    "min": 56.07
+   },
+   "S1": {
+    "km": 25.777,
+    "min": 51.55
+   },
+   "S2": {
+    "km": 13.505,
+    "min": 27.01
+   },
+   "S3": {
+    "km": 11.094,
+    "min": 22.19
+   },
+   "S4": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "S5": {
+    "km": 23.897,
+    "min": 47.79
+   },
+   "S6": {
+    "km": 5.082,
+    "min": 10.16
+   },
+   "S7": {
+    "km": 7.431,
+    "min": 14.86
+   }
+  },
+  "S5": {
+   "T11130": {
+    "km": 23.292,
+    "min": 46.58
+   },
+   "T1215": {
+    "km": 23.106,
+    "min": 46.21
+   },
+   "T57454": {
+    "km": 12.643,
+    "min": 25.29
+   },
+   "T57458": {
+    "km": 12.847,
+    "min": 25.69
+   },
+   "DEPOT": {
+    "km": 7.618,
+    "min": 15.24
+   },
+   "S1": {
+    "km": 12.278,
+    "min": 24.56
+   },
+   "S2": {
+    "km": 14.142,
+    "min": 28.28
+   },
+   "S3": {
+    "km": 12.897,
+    "min": 25.79
+   },
+   "S4": {
+    "km": 23.897,
+    "min": 47.79
+   },
+   "S5": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "S6": {
+    "km": 23.204,
+    "min": 46.41
+   },
+   "S7": {
+    "km": 23.951,
+    "min": 47.9
+   }
+  },
+  "S6": {
+   "T11130": {
+    "km": 45.725,
+    "min": 91.45
+   },
+   "T1215": {
+    "km": 45.455,
+    "min": 90.91
+   },
+   "T57454": {
+    "km": 11.6,
+    "min": 23.2
+   },
+   "T57458": {
+    "km": 11.419,
+    "min": 22.84
+   },
+   "DEPOT": {
+    "km": 28.516,
+    "min": 57.03
+   },
+   "S1": {
+    "km": 27.482,
+    "min": 54.96
+   },
+   "S2": {
+    "km": 15.762,
+    "min": 31.52
+   },
+   "S3": {
+    "km": 11.503,
+    "min": 23.01
+   },
+   "S4": {
+    "km": 5.082,
+    "min": 10.16
+   },
+   "S5": {
+    "km": 23.204,
+    "min": 46.41
+   },
+   "S6": {
+    "km": 0.0,
+    "min": 0.0
+   },
+   "S7": {
+    "km": 12.282,
+    "min": 24.56
+   }
+  },
+  "S7": {
+   "T11130": {
+    "km": 42.636,
+    "min": 85.27
+   },
+   "T1215": {
+    "km": 42.264,
+    "min": 84.53
+   },
+   "T57454": {
+    "km": 12.081,
+    "min": 24.16
+   },
+   "T57458": {
+    "km": 11.913,
+    "min": 23.83
+   },
+   "DEPOT": {
+    "km": 26.085,
+    "min": 52.17
+   },
+   "S1": {
+    "km": 22.138,
+    "min": 44.28
+   },
+   "S2": {
+    "km": 10.487,
+    "min": 20.97
+   },
+   "S3": {
+    "km": 11.766,
+    "min": 23.53
+   },
+   "S4": {
+    "km": 7.431,
+    "min": 14.86
+   },
+   "S5": {
+    "km": 23.951,
+    "min": 47.9
+   },
+   "S6": {
+    "km": 12.282,
+    "min": 24.56
+   },
+   "S7": {
+    "km": 0.0,
+    "min": 0.0
+   }
+  }
+ },
+ "tariff": [
+  {
+   "t": 0,
+   "start_min": 0,
+   "price": 0.1
+  },
+  {
+   "t": 1,
+   "start_min": 15,
+   "price": 0.1
+  },
+  {
+   "t": 2,
+   "start_min": 30,
+   "price": 0.1
+  },
+  {
+   "t": 3,
+   "start_min": 45,
+   "price": 0.1
+  },
+  {
+   "t": 4,
+   "start_min": 60,
+   "price": 0.1
+  },
+  {
+   "t": 5,
+   "start_min": 75,
+   "price": 0.1
+  },
+  {
+   "t": 6,
+   "start_min": 90,
+   "price": 0.1
+  },
+  {
+   "t": 7,
+   "start_min": 105,
+   "price": 0.1
+  },
+  {
+   "t": 8,
+   "start_min": 120,
+   "price": 0.1
+  },
+  {
+   "t": 9,
+   "start_min": 135,
+   "price": 0.1
+  },
+  {
+   "t": 10,
+   "start_min": 150,
+   "price": 0.1
+  },
+  {
+   "t": 11,
+   "start_min": 165,
+   "price": 0.1
+  },
+  {
+   "t": 12,
+   "start_min": 180,
+   "price": 0.1
+  },
+  {
+   "t": 13,
+   "start_min": 195,
+   "price": 0.1
+  },
+  {
+   "t": 14,
+   "start_min": 210,
+   "price": 0.1
+  },
+  {
+   "t": 15,
+   "start_min": 225,
+   "price": 0.1
+  },
+  {
+   "t": 16,
+   "start_min": 240,
+   "price": 0.1
+  },
+  {
+   "t": 17,
+   "start_min": 255,
+   "price": 0.1
+  },
+  {
+   "t": 18,
+   "start_min": 270,
+   "price": 0.1
+  },
+  {
+   "t": 19,
+   "start_min": 285,
+   "price": 0.1
+  },
+  {
+   "t": 20,
+   "start_min": 300,
+   "price": 0.1
+  },
+  {
+   "t": 21,
+   "start_min": 315,
+   "price": 0.1
+  },
+  {
+   "t": 22,
+   "start_min": 330,
+   "price": 0.1
+  },
+  {
+   "t": 23,
+   "start_min": 345,
+   "price": 0.1
+  },
+  {
+   "t": 24,
+   "start_min": 360,
+   "price": 0.2
+  },
+  {
+   "t": 25,
+   "start_min": 375,
+   "price": 0.2
+  },
+  {
+   "t": 26,
+   "start_min": 390,
+   "price": 0.2
+  },
+  {
+   "t": 27,
+   "start_min": 405,
+   "price": 0.2
+  },
+  {
+   "t": 28,
+   "start_min": 420,
+   "price": 0.2
+  },
+  {
+   "t": 29,
+   "start_min": 435,
+   "price": 0.2
+  },
+  {
+   "t": 30,
+   "start_min": 450,
+   "price": 0.2
+  },
+  {
+   "t": 31,
+   "start_min": 465,
+   "price": 0.2
+  },
+  {
+   "t": 32,
+   "start_min": 480,
+   "price": 0.2
+  },
+  {
+   "t": 33,
+   "start_min": 495,
+   "price": 0.2
+  },
+  {
+   "t": 34,
+   "start_min": 510,
+   "price": 0.2
+  },
+  {
+   "t": 35,
+   "start_min": 525,
+   "price": 0.2
+  },
+  {
+   "t": 36,
+   "start_min": 540,
+   "price": 0.2
+  },
+  {
+   "t": 37,
+   "start_min": 555,
+   "price": 0.2
+  },
+  {
+   "t": 38,
+   "start_min": 570,
+   "price": 0.2
+  },
+  {
+   "t": 39,
+   "start_min": 585,
+   "price": 0.2
+  },
+  {
+   "t": 40,
+   "start_min": 600,
+   "price": 0.2
+  },
+  {
+   "t": 41,
+   "start_min": 615,
+   "price": 0.2
+  },
+  {
+   "t": 42,
+   "start_min": 630,
+   "price": 0.2
+  },
+  {
+   "t": 43,
+   "start_min": 645,
+   "price": 0.2
+  },
+  {
+   "t": 44,
+   "start_min": 660,
+   "price": 0.2
+  },
+  {
+   "t": 45,
+   "start_min": 675,
+   "price": 0.2
+  },
+  {
+   "t": 46,
+   "start_min": 690,
+   "price": 0.2
+  },
+  {
+   "t": 47,
+   "start_min": 705,
+   "price": 0.2
+  },
+  {
+   "t": 48,
+   "start_min": 720,
+   "price": 0.2
+  },
+  {
+   "t": 49,
+   "start_min": 735,
+   "price": 0.2
+  },
+  {
+   "t": 50,
+   "start_min": 750,
+   "price": 0.2
+  },
+  {
+   "t": 51,
+   "start_min": 765,
+   "price": 0.2
+  },
+  {
+   "t": 52,
+   "start_min": 780,
+   "price": 0.2
+  },
+  {
+   "t": 53,
+   "start_min": 795,
+   "price": 0.2
+  },
+  {
+   "t": 54,
+   "start_min": 810,
+   "price": 0.2
+  },
+  {
+   "t": 55,
+   "start_min": 825,
+   "price": 0.2
+  },
+  {
+   "t": 56,
+   "start_min": 840,
+   "price": 0.2
+  },
+  {
+   "t": 57,
+   "start_min": 855,
+   "price": 0.2
+  },
+  {
+   "t": 58,
+   "start_min": 870,
+   "price": 0.2
+  },
+  {
+   "t": 59,
+   "start_min": 885,
+   "price": 0.2
+  },
+  {
+   "t": 60,
+   "start_min": 900,
+   "price": 0.2
+  },
+  {
+   "t": 61,
+   "start_min": 915,
+   "price": 0.2
+  },
+  {
+   "t": 62,
+   "start_min": 930,
+   "price": 0.2
+  },
+  {
+   "t": 63,
+   "start_min": 945,
+   "price": 0.2
+  },
+  {
+   "t": 64,
+   "start_min": 960,
+   "price": 0.2
+  },
+  {
+   "t": 65,
+   "start_min": 975,
+   "price": 0.2
+  },
+  {
+   "t": 66,
+   "start_min": 990,
+   "price": 0.2
+  },
+  {
+   "t": 67,
+   "start_min": 1005,
+   "price": 0.2
+  },
+  {
+   "t": 68,
+   "start_min": 1020,
+   "price": 0.2
+  },
+  {
+   "t": 69,
+   "start_min": 1035,
+   "price": 0.2
+  },
+  {
+   "t": 70,
+   "start_min": 1050,
+   "price": 0.2
+  },
+  {
+   "t": 71,
+   "start_min": 1065,
+   "price": 0.2
+  },
+  {
+   "t": 72,
+   "start_min": 1080,
+   "price": 0.2
+  },
+  {
+   "t": 73,
+   "start_min": 1095,
+   "price": 0.2
+  },
+  {
+   "t": 74,
+   "start_min": 1110,
+   "price": 0.2
+  },
+  {
+   "t": 75,
+   "start_min": 1125,
+   "price": 0.2
+  },
+  {
+   "t": 76,
+   "start_min": 1140,
+   "price": 0.2
+  },
+  {
+   "t": 77,
+   "start_min": 1155,
+   "price": 0.2
+  },
+  {
+   "t": 78,
+   "start_min": 1170,
+   "price": 0.2
+  },
+  {
+   "t": 79,
+   "start_min": 1185,
+   "price": 0.2
+  },
+  {
+   "t": 80,
+   "start_min": 1200,
+   "price": 0.2
+  },
+  {
+   "t": 81,
+   "start_min": 1215,
+   "price": 0.2
+  },
+  {
+   "t": 82,
+   "start_min": 1230,
+   "price": 0.2
+  },
+  {
+   "t": 83,
+   "start_min": 1245,
+   "price": 0.2
+  },
+  {
+   "t": 84,
+   "start_min": 1260,
+   "price": 0.2
+  },
+  {
+   "t": 85,
+   "start_min": 1275,
+   "price": 0.2
+  },
+  {
+   "t": 86,
+   "start_min": 1290,
+   "price": 0.2
+  },
+  {
+   "t": 87,
+   "start_min": 1305,
+   "price": 0.2
+  },
+  {
+   "t": 88,
+   "start_min": 1320,
+   "price": 0.1
+  },
+  {
+   "t": 89,
+   "start_min": 1335,
+   "price": 0.1
+  },
+  {
+   "t": 90,
+   "start_min": 1350,
+   "price": 0.1
+  },
+  {
+   "t": 91,
+   "start_min": 1365,
+   "price": 0.1
+  },
+  {
+   "t": 92,
+   "start_min": 1380,
+   "price": 0.1
+  },
+  {
+   "t": 93,
+   "start_min": 1395,
+   "price": 0.1
+  },
+  {
+   "t": 94,
+   "start_min": 1410,
+   "price": 0.1
+  },
+  {
+   "t": 95,
+   "start_min": 1425,
+   "price": 0.1
+  },
+  {
+   "t": 96,
+   "start_min": 1440,
+   "price": 0.1
+  },
+  {
+   "t": 97,
+   "start_min": 1455,
+   "price": 0.1
+  },
+  {
+   "t": 98,
+   "start_min": 1470,
+   "price": 0.1
+  },
+  {
+   "t": 99,
+   "start_min": 1485,
+   "price": 0.1
+  },
+  {
+   "t": 100,
+   "start_min": 1500,
+   "price": 0.1
+  },
+  {
+   "t": 101,
+   "start_min": 1515,
+   "price": 0.1
+  },
+  {
+   "t": 102,
+   "start_min": 1530,
+   "price": 0.1
+  },
+  {
+   "t": 103,
+   "start_min": 1545,
+   "price": 0.1
+  },
+  {
+   "t": 104,
+   "start_min": 1560,
+   "price": 0.1
+  },
+  {
+   "t": 105,
+   "start_min": 1575,
+   "price": 0.1
+  },
+  {
+   "t": 106,
+   "start_min": 1590,
+   "price": 0.1
+  },
+  {
+   "t": 107,
+   "start_min": 1605,
+   "price": 0.1
+  },
+  {
+   "t": 108,
+   "start_min": 1620,
+   "price": 0.1
+  },
+  {
+   "t": 109,
+   "start_min": 1635,
+   "price": 0.1
+  },
+  {
+   "t": 110,
+   "start_min": 1650,
+   "price": 0.1
+  },
+  {
+   "t": 111,
+   "start_min": 1665,
+   "price": 0.1
+  },
+  {
+   "t": 112,
+   "start_min": 1680,
+   "price": 0.1
+  },
+  {
+   "t": 113,
+   "start_min": 1695,
+   "price": 0.1
+  },
+  {
+   "t": 114,
+   "start_min": 1710,
+   "price": 0.1
+  },
+  {
+   "t": 115,
+   "start_min": 1725,
+   "price": 0.1
+  },
+  {
+   "t": 116,
+   "start_min": 1740,
+   "price": 0.1
+  }
+ ],
+ "baseline_blocks": [
+  {
+   "block_id": "5654172",
+   "trips": [
+    "39170994",
+    "39170893",
+    "39170809",
+    "39170930",
+    "39170823",
+    "39170950"
+   ]
+  },
+  {
+   "block_id": "5654173",
+   "trips": [
+    "39170876",
+    "39170970",
+    "39170897",
+    "39171007",
+    "39170927",
+    "39170841",
+    "39170929",
+    "39170816",
+    "39171013"
+   ]
+  },
+  {
+   "block_id": "5654175",
+   "trips": [
+    "39170877",
+    "39171011",
+    "39170892",
+    "39170847",
+    "39170851",
+    "39170830",
+    "39170956"
+   ]
+  },
+  {
+   "block_id": "5654176",
+   "trips": [
+    "39170986",
+    "39171035",
+    "39170983",
+    "39170859",
+    "39170822",
+    "39171015",
+    "39170806",
+    "39170920"
+   ]
+  },
+  {
+   "block_id": "5654177",
+   "trips": [
+    "39170993",
+    "39170857"
+   ]
+  },
+  {
+   "block_id": "5654178",
+   "trips": [
+    "39171000",
+    "39170948"
+   ]
+  },
+  {
+   "block_id": "5654179",
+   "trips": [
+    "39170843",
+    "39170890",
+    "39170819",
+    "39170941",
+    "39170804",
+    "39170944",
+    "39170812"
+   ]
+  },
+  {
+   "block_id": "5654180",
+   "trips": [
+    "39170867",
+    "39170825",
+    "39170891",
+    "39170933",
+    "39170942",
+    "39170973"
+   ]
+  },
+  {
+   "block_id": "5654181",
+   "trips": [
+    "39170980",
+    "39171026",
+    "39170818",
+    "39170947"
+   ]
+  },
+  {
+   "block_id": "5654183",
+   "trips": [
+    "39170967",
+    "39170949"
+   ]
+  },
+  {
+   "block_id": "5654184",
+   "trips": [
+    "39170896",
+    "39171004",
+    "39170860"
+   ]
+  },
+  {
+   "block_id": "5654186",
+   "trips": [
+    "39170979",
+    "39468704",
+    "39171003",
+    "39171024"
+   ]
+  },
+  {
+   "block_id": "5654187",
+   "trips": [
+    "39170870",
+    "39170969",
+    "39171036",
+    "39170845",
+    "39170875",
+    "39170829",
+    "39170965",
+    "39170914"
+   ]
+  },
+  {
+   "block_id": "5654188",
+   "trips": [
+    "39170978",
+    "39171025"
+   ]
+  },
+  {
+   "block_id": "5654190",
+   "trips": [
+    "39170998",
+    "39170922",
+    "39171008",
+    "39170854"
+   ]
+  },
+  {
+   "block_id": "5654191",
+   "trips": [
+    "39170864",
+    "39170824",
+    "39170926"
+   ]
+  },
+  {
+   "block_id": "5654192",
+   "trips": [
+    "39170972"
+   ]
+  },
+  {
+   "block_id": "5654193",
+   "trips": [
+    "39171005",
+    "39170940",
+    "39170862",
+    "39170990"
+   ]
+  },
+  {
+   "block_id": "5654194",
+   "trips": [
+    "39468707",
+    "39170996",
+    "39170861",
+    "39170936",
+    "39171032",
+    "39170931",
+    "39170895"
+   ]
+  },
+  {
+   "block_id": "5654195",
+   "trips": [
+    "39170959",
+    "39170855",
+    "39170808",
+    "39170873",
+    "39171020",
+    "39170964",
+    "39170805",
+    "39170907",
+    "39170832",
+    "39170971",
+    "39170905"
+   ]
+  },
+  {
+   "block_id": "5654200",
+   "trips": [
+    "39170932",
+    "39171031",
+    "39170820",
+    "39170894"
+   ]
+  },
+  {
+   "block_id": "5654201",
+   "trips": [
+    "39170871"
+   ]
+  },
+  {
+   "block_id": "5654204",
+   "trips": [
+    "39171009"
+   ]
+  },
+  {
+   "block_id": "5654205",
+   "trips": [
+    "39171010",
+    "39171023"
+   ]
+  },
+  {
+   "block_id": "5654206",
+   "trips": [
+    "39170863",
+    "39170997",
+    "39170939"
+   ]
+  },
+  {
+   "block_id": "5654208",
+   "trips": [
+    "39170924"
+   ]
+  },
+  {
+   "block_id": "5654211",
+   "trips": [
+    "39171014",
+    "39171019",
+    "39170834",
+    "39171028",
+    "39170831"
+   ]
+  },
+  {
+   "block_id": "5654213",
+   "trips": [
+    "39171002",
+    "39170943",
+    "39170937",
+    "39170991"
+   ]
+  },
+  {
+   "block_id": "5654214",
+   "trips": [
+    "39170807",
+    "39171016"
+   ]
+  },
+  {
+   "block_id": "5654217",
+   "trips": [
+    "39170803",
+    "39170981",
+    "39170904",
+    "39170848"
+   ]
+  },
+  {
+   "block_id": "5654218",
+   "trips": [
+    "39170802"
+   ]
+  },
+  {
+   "block_id": "5654219",
+   "trips": [
+    "39170946",
+    "39171029",
+    "39171030",
+    "39171012",
+    "44252964"
+   ]
+  }
+ ]
+}
