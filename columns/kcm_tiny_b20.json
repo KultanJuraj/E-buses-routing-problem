@@ -1,0 +1,517 @@
+{
+ "instance": "kcm_tiny",
+ "trip_ids": [
+  "39170876",
+  "39170877",
+  "39170970",
+  "39171011",
+  "39170897",
+  "39170892",
+  "39171007",
+  "39170847"
+ ],
+ "slot_min": 15,
+ "buffer_min": 10.0,
+ "station_capacity": {
+  "DEPOT": 10,
+  "S1": 1,
+  "S2": 1,
+  "S3": 1,
+  "S4": 1,
+  "S5": 1,
+  "S6": 1,
+  "S7": 1
+ },
+ "config": {
+  "max_trips": 8,
+  "max_successors": 4,
+  "max_gap_min": 180.0,
+  "max_charge_gap_min": 300.0,
+  "charge_below": 0.6,
+  "max_charge_stations": 2,
+  "allow_depot_charging": true,
+  "max_columns_per_start": 2000,
+  "max_nodes_per_start": 50000,
+  "max_columns": 100000
+ },
+ "stats": {
+  "n_columns": 50,
+  "n_with_charging": 0,
+  "n_charge_events": 0,
+  "max_trips_in_column": 4,
+  "trips_uncovered": [],
+  "per_start_cap": 2000,
+  "starts_truncated": 0,
+  "hit_max_columns": false
+ },
+ "columns": [
+  {
+   "id": "k0",
+   "trips": [
+    "39170876"
+   ],
+   "cost": 565.3699,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.44,
+   "deadhead_cost": 51.66,
+   "energy_cost": 13.7099,
+   "grid_kwh_day": 0,
+   "refill_kwh": 137.099,
+   "min_soc": 0.7058,
+   "final_soc": 0.7058,
+   "start_min": 250.6,
+   "end_min": 381.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k3",
+   "trips": [
+    "39170876",
+    "39170970",
+    "39170897",
+    "39171007"
+   ],
+   "cost": 587.1809,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.407,
+   "deadhead_cost": 53.1105,
+   "energy_cost": 34.0704,
+   "grid_kwh_day": 0,
+   "refill_kwh": 340.7041,
+   "min_soc": 0.2689,
+   "final_soc": 0.2689,
+   "start_min": 250.6,
+   "end_min": 664.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k5",
+   "trips": [
+    "39170876",
+    "39170970",
+    "39170892"
+   ],
+   "cost": 579.6208,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.145,
+   "deadhead_cost": 52.7175,
+   "energy_cost": 26.9033,
+   "grid_kwh_day": 0,
+   "refill_kwh": 269.0325,
+   "min_soc": 0.4227,
+   "final_soc": 0.4227,
+   "start_min": 250.6,
+   "end_min": 603.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k6",
+   "trips": [
+    "39170876",
+    "39170970",
+    "39170892",
+    "39170847"
+   ],
+   "cost": 586.5388,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.407,
+   "deadhead_cost": 53.1105,
+   "energy_cost": 33.4283,
+   "grid_kwh_day": 0,
+   "refill_kwh": 334.283,
+   "min_soc": 0.2827,
+   "final_soc": 0.2827,
+   "start_min": 250.6,
+   "end_min": 694.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k10",
+   "trips": [
+    "39170876",
+    "39171011",
+    "39170892"
+   ],
+   "cost": 579.6208,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.145,
+   "deadhead_cost": 52.7175,
+   "energy_cost": 26.9033,
+   "grid_kwh_day": 0,
+   "refill_kwh": 269.0325,
+   "min_soc": 0.4227,
+   "final_soc": 0.4227,
+   "start_min": 250.6,
+   "end_min": 603.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k11",
+   "trips": [
+    "39170876",
+    "39171011",
+    "39170892",
+    "39170847"
+   ],
+   "cost": 586.5388,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.407,
+   "deadhead_cost": 53.1105,
+   "energy_cost": 33.4283,
+   "grid_kwh_day": 0,
+   "refill_kwh": 334.283,
+   "min_soc": 0.2827,
+   "final_soc": 0.2827,
+   "start_min": 250.6,
+   "end_min": 694.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k19",
+   "trips": [
+    "39170877"
+   ],
+   "cost": 565.3699,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.44,
+   "deadhead_cost": 51.66,
+   "energy_cost": 13.7099,
+   "grid_kwh_day": 0,
+   "refill_kwh": 137.099,
+   "min_soc": 0.7058,
+   "final_soc": 0.7058,
+   "start_min": 277.6,
+   "end_min": 408.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k21",
+   "trips": [
+    "39170877",
+    "39171011",
+    "39170892"
+   ],
+   "cost": 579.6208,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.145,
+   "deadhead_cost": 52.7175,
+   "energy_cost": 26.9033,
+   "grid_kwh_day": 0,
+   "refill_kwh": 269.0325,
+   "min_soc": 0.4227,
+   "final_soc": 0.4227,
+   "start_min": 277.6,
+   "end_min": 603.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k22",
+   "trips": [
+    "39170877",
+    "39171011",
+    "39170892",
+    "39170847"
+   ],
+   "cost": 586.5388,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.407,
+   "deadhead_cost": 53.1105,
+   "energy_cost": 33.4283,
+   "grid_kwh_day": 0,
+   "refill_kwh": 334.283,
+   "min_soc": 0.2827,
+   "final_soc": 0.2827,
+   "start_min": 277.6,
+   "end_min": 694.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k30",
+   "trips": [
+    "39170970"
+   ],
+   "cost": 564.443,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 33.959,
+   "deadhead_cost": 50.9385,
+   "energy_cost": 13.5045,
+   "grid_kwh_day": 0,
+   "refill_kwh": 135.0449,
+   "min_soc": 0.7102,
+   "final_soc": 0.7102,
+   "start_min": 339.09,
+   "end_min": 467.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k32",
+   "trips": [
+    "39170970",
+    "39170897",
+    "39171007"
+   ],
+   "cost": 579.336,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.664,
+   "deadhead_cost": 51.996,
+   "energy_cost": 27.34,
+   "grid_kwh_day": 0,
+   "refill_kwh": 273.3996,
+   "min_soc": 0.4133,
+   "final_soc": 0.4133,
+   "start_min": 339.09,
+   "end_min": 664.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k35",
+   "trips": [
+    "39170970",
+    "39170892",
+    "39170847"
+   ],
+   "cost": 578.6938,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.664,
+   "deadhead_cost": 51.996,
+   "energy_cost": 26.6978,
+   "grid_kwh_day": 0,
+   "refill_kwh": 266.9785,
+   "min_soc": 0.4271,
+   "final_soc": 0.4271,
+   "start_min": 339.09,
+   "end_min": 694.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k38",
+   "trips": [
+    "39171011"
+   ],
+   "cost": 564.443,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 33.959,
+   "deadhead_cost": 50.9385,
+   "energy_cost": 13.5045,
+   "grid_kwh_day": 0,
+   "refill_kwh": 135.0449,
+   "min_soc": 0.7102,
+   "final_soc": 0.7102,
+   "start_min": 369.09,
+   "end_min": 499.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k40",
+   "trips": [
+    "39171011",
+    "39170892",
+    "39170847"
+   ],
+   "cost": 578.6938,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.664,
+   "deadhead_cost": 51.996,
+   "energy_cost": 26.6978,
+   "grid_kwh_day": 0,
+   "refill_kwh": 266.9785,
+   "min_soc": 0.4271,
+   "final_soc": 0.4271,
+   "start_min": 369.09,
+   "end_min": 694.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k43",
+   "trips": [
+    "39170897"
+   ],
+   "cost": 566.012,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.44,
+   "deadhead_cost": 51.66,
+   "energy_cost": 14.352,
+   "grid_kwh_day": 0,
+   "refill_kwh": 143.5201,
+   "min_soc": 0.692,
+   "final_soc": 0.692,
+   "start_min": 431.6,
+   "end_min": 575.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k44",
+   "trips": [
+    "39170897",
+    "39171007"
+   ],
+   "cost": 572.9301,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.702,
+   "deadhead_cost": 52.053,
+   "energy_cost": 20.8771,
+   "grid_kwh_day": 0,
+   "refill_kwh": 208.7705,
+   "min_soc": 0.552,
+   "final_soc": 0.552,
+   "start_min": 431.6,
+   "end_min": 664.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k46",
+   "trips": [
+    "39170892"
+   ],
+   "cost": 565.3699,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.44,
+   "deadhead_cost": 51.66,
+   "energy_cost": 13.7099,
+   "grid_kwh_day": 0,
+   "refill_kwh": 137.099,
+   "min_soc": 0.7058,
+   "final_soc": 0.7058,
+   "start_min": 462.6,
+   "end_min": 603.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k47",
+   "trips": [
+    "39170892",
+    "39170847"
+   ],
+   "cost": 572.2879,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.702,
+   "deadhead_cost": 52.053,
+   "energy_cost": 20.2349,
+   "grid_kwh_day": 0,
+   "refill_kwh": 202.3494,
+   "min_soc": 0.5658,
+   "final_soc": 0.5658,
+   "start_min": 462.6,
+   "end_min": 694.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k48",
+   "trips": [
+    "39171007"
+   ],
+   "cost": 564.443,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 33.959,
+   "deadhead_cost": 50.9385,
+   "energy_cost": 13.5045,
+   "grid_kwh_day": 0,
+   "refill_kwh": 135.0449,
+   "min_soc": 0.7102,
+   "final_soc": 0.7102,
+   "start_min": 531.09,
+   "end_min": 664.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k49",
+   "trips": [
+    "39170847"
+   ],
+   "cost": 564.443,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 33.959,
+   "deadhead_cost": 50.9385,
+   "energy_cost": 13.5045,
+   "grid_kwh_day": 0,
+   "refill_kwh": 135.0449,
+   "min_soc": 0.7102,
+   "final_soc": 0.7102,
+   "start_min": 561.09,
+   "end_min": 694.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  }
+ ],
+ "conflicts": [],
+ "tight_pairs": [],
+ "selection": {
+  "budget": 20,
+  "lp_objective": 1173.719704313476,
+  "anchor": [
+   1,
+   8
+  ]
+ },
+ "best_on_selection": {
+  "columns": [
+   1,
+   8
+  ],
+  "objective": 1173.719704313476,
+  "n_vehicles": 2
+ },
+ "assumptions": {
+  "battery_kwh": 419.40000000000003,
+  "kwh_per_km": 1.8641135767120018,
+  "soc_min": 0.1,
+  "soc_max": 1.0,
+  "soc_start": 1.0,
+  "site_charger_kw": 300.0,
+  "chargers_per_site": 1,
+  "depot_charger_kw": 150.0,
+  "depot_chargers": 10,
+  "charge_efficiency": 0.9,
+  "min_charge_min": 5.0,
+  "charge_buffer_min": 10.0,
+  "detour_factor": 1.3,
+  "deadhead_speed_kmh": 30.0,
+  "min_layover_min": 5.0,
+  "slot_min": 15,
+  "tariff_day": 0.2,
+  "tariff_night": 0.1,
+  "night_start_h": 22.0,
+  "night_end_h": 6.0,
+  "vehicle_cost": 500.0,
+  "deadhead_cost_per_km": 1.5
+ }
+}

@@ -1,0 +1,1192 @@
+{
+ "instance": "kcm_small",
+ "trip_ids": [
+  "39170876",
+  "39170877",
+  "39170993",
+  "39170867",
+  "39170979",
+  "39170970",
+  "39170857",
+  "39171011",
+  "39468704",
+  "39170897",
+  "39170892",
+  "39171003",
+  "39171007",
+  "39170847",
+  "39171024",
+  "39170927",
+  "39170851",
+  "39170825",
+  "39170841",
+  "39170830"
+ ],
+ "slot_min": 15,
+ "buffer_min": 10.0,
+ "station_capacity": {
+  "DEPOT": 10,
+  "S1": 1,
+  "S2": 1,
+  "S3": 1,
+  "S4": 1,
+  "S5": 1,
+  "S6": 1,
+  "S7": 1
+ },
+ "config": {
+  "max_trips": 8,
+  "max_successors": 4,
+  "max_gap_min": 180.0,
+  "max_charge_gap_min": 300.0,
+  "charge_below": 0.6,
+  "max_charge_stations": 2,
+  "allow_depot_charging": true,
+  "max_columns_per_start": 2000,
+  "max_nodes_per_start": 50000,
+  "max_columns": 100000
+ },
+ "stats": {
+  "n_columns": 991,
+  "n_with_charging": 971,
+  "n_charge_events": 1657,
+  "max_trips_in_column": 6,
+  "trips_uncovered": [],
+  "per_start_cap": 2000,
+  "starts_truncated": 0,
+  "hit_max_columns": false
+ },
+ "columns": [
+  {
+   "id": "k0",
+   "trips": [
+    "39170876"
+   ],
+   "cost": 565.3699,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.44,
+   "deadhead_cost": 51.66,
+   "energy_cost": 13.7099,
+   "grid_kwh_day": 0,
+   "refill_kwh": 137.099,
+   "min_soc": 0.3831,
+   "final_soc": 0.3831,
+   "start_min": 250.6,
+   "end_min": 381.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k2",
+   "trips": [
+    "39170876",
+    "39170970",
+    "39170897",
+    "39171007",
+    "39170927"
+   ],
+   "cost": 622.0777,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 36.526,
+   "deadhead_cost": 54.789,
+   "energy_cost": 67.2887,
+   "grid_kwh_day": 264.1,
+   "refill_kwh": 144.6873,
+   "min_soc": 0.2247,
+   "final_soc": 0.3489,
+   "start_min": 250.6,
+   "end_min": 770.48,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 433.64,
+     "end_min": 460.55,
+     "power_kw": 300.0,
+     "grid_kwh": 134.55000000000013,
+     "soc_before": 0.24493200787401576,
+     "soc_after": 0.8504070078740164
+    },
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 630.64,
+     "end_min": 656.55,
+     "power_kw": 300.0,
+     "grid_kwh": 129.54999999999984,
+     "soc_before": 0.22466065557146314,
+     "soc_after": 0.8076356555714626
+    }
+   ],
+   "energy_by_slot": {
+    "28": 6.8,
+    "29": 75.0,
+    "30": 52.75,
+    "42": 71.8,
+    "43": 57.75
+   },
+   "power_by_station": {
+    "S3": {
+     "28": 27.2,
+     "29": 300.0,
+     "30": 211.0,
+     "42": 287.2,
+     "43": 231.0
+    }
+   }
+  },
+  {
+   "id": "k4",
+   "trips": [
+    "39170876",
+    "39170970",
+    "39170897",
+    "39171007",
+    "39170851",
+    "39170830"
+   ],
+   "cost": 633.2705,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 36.788,
+   "deadhead_cost": 55.182,
+   "energy_cost": 78.0885,
+   "grid_kwh_day": 306.8476,
+   "refill_kwh": 167.1902,
+   "min_soc": 0.2247,
+   "final_soc": 0.2476,
+   "start_min": 250.6,
+   "end_min": 898.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 433.64,
+     "end_min": 460.55,
+     "power_kw": 300.0,
+     "grid_kwh": 134.55000000000013,
+     "soc_before": 0.24493200787401576,
+     "soc_after": 0.8504070078740164
+    },
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 630.64,
+     "end_min": 665.099526419046,
+     "power_kw": 300.0,
+     "grid_kwh": 172.29763209523037,
+     "soc_before": 0.22466065557146314,
+     "soc_after": 1.0
+    }
+   ],
+   "energy_by_slot": {
+    "28": 6.8,
+    "29": 75.0,
+    "30": 52.75,
+    "42": 71.8,
+    "43": 75.0,
+    "44": 25.4976
+   },
+   "power_by_station": {
+    "S3": {
+     "28": 27.2,
+     "29": 300.0,
+     "30": 211.0,
+     "42": 287.2,
+     "43": 300.0,
+     "44": 101.991
+    }
+   }
+  },
+  {
+   "id": "k35",
+   "trips": [
+    "39170876",
+    "39170970",
+    "39170892",
+    "39170825"
+   ],
+   "cost": 624.3492,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 47.445,
+   "deadhead_cost": 71.1675,
+   "energy_cost": 53.1817,
+   "grid_kwh_day": 172.6,
+   "refill_kwh": 186.6165,
+   "min_soc": 0.1602,
+   "final_soc": 0.1602,
+   "start_min": 250.6,
+   "end_min": 800.01,
+   "charges": [
+    {
+     "station": "S2",
+     "location": "S2",
+     "start_min": 445.22,
+     "end_min": 479.74,
+     "power_kw": 300.0,
+     "grid_kwh": 172.5999999999999,
+     "soc_before": 0.19095659926031977,
+     "soc_after": 0.9676565992603193
+    }
+   ],
+   "energy_by_slot": {
+    "29": 23.9,
+    "30": 75.0,
+    "31": 73.7
+   },
+   "power_by_station": {
+    "S2": {
+     "29": 95.6,
+     "30": 300.0,
+     "31": 294.8
+    }
+   }
+  },
+  {
+   "id": "k165",
+   "trips": [
+    "39170877"
+   ],
+   "cost": 565.3699,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.44,
+   "deadhead_cost": 51.66,
+   "energy_cost": 13.7099,
+   "grid_kwh_day": 0,
+   "refill_kwh": 137.099,
+   "min_soc": 0.3831,
+   "final_soc": 0.3831,
+   "start_min": 277.6,
+   "end_min": 408.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k166",
+   "trips": [
+    "39170877",
+    "39171011",
+    "39170892"
+   ],
+   "cost": 593.1528,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.483,
+   "deadhead_cost": 53.2245,
+   "energy_cost": 39.9283,
+   "grid_kwh_day": 129.55,
+   "refill_kwh": 140.1826,
+   "min_soc": 0.2449,
+   "final_soc": 0.3692,
+   "start_min": 277.6,
+   "end_min": 603.48,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 465.64,
+     "end_min": 491.55,
+     "power_kw": 300.0,
+     "grid_kwh": 129.55000000000013,
+     "soc_before": 0.24493200787401576,
+     "soc_after": 0.8279070078740163
+    }
+   ],
+   "energy_by_slot": {
+    "31": 71.8,
+    "32": 57.75
+   },
+   "power_by_station": {
+    "S3": {
+     "31": 287.2,
+     "32": 231.0
+    }
+   }
+  },
+  {
+   "id": "k190",
+   "trips": [
+    "39170877",
+    "39171011",
+    "39171024",
+    "39170825"
+   ],
+   "cost": 603.8951,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.745,
+   "deadhead_cost": 53.6175,
+   "energy_cost": 50.2776,
+   "grid_kwh_day": 167.7929,
+   "refill_kwh": 167.1902,
+   "min_soc": 0.2449,
+   "final_soc": 0.2476,
+   "start_min": 277.6,
+   "end_min": 800.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 465.64,
+     "end_min": 499.19857742782153,
+     "power_kw": 300.0,
+     "grid_kwh": 167.7928871391076,
+     "soc_before": 0.24493200787401576,
+     "soc_after": 1.0
+    }
+   ],
+   "energy_by_slot": {
+    "31": 71.8,
+    "32": 75.0,
+    "33": 20.9929
+   },
+   "power_by_station": {
+    "S3": {
+     "31": 287.2,
+     "32": 300.0,
+     "33": 83.972
+    }
+   }
+  },
+  {
+   "id": "k201",
+   "trips": [
+    "39170877",
+    "39171003",
+    "39170927",
+    "39170841"
+   ],
+   "cost": 603.8951,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.745,
+   "deadhead_cost": 53.6175,
+   "energy_cost": 50.2776,
+   "grid_kwh_day": 167.7929,
+   "refill_kwh": 167.1902,
+   "min_soc": 0.2449,
+   "final_soc": 0.2476,
+   "start_min": 277.6,
+   "end_min": 860.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 584.64,
+     "end_min": 618.1985774278215,
+     "power_kw": 300.0,
+     "grid_kwh": 167.7928871391076,
+     "soc_before": 0.24493200787401576,
+     "soc_after": 1.0
+    }
+   ],
+   "energy_by_slot": {
+    "38": 1.8,
+    "39": 75.0,
+    "40": 75.0,
+    "41": 15.9929
+   },
+   "power_by_station": {
+    "S3": {
+     "38": 7.2,
+     "39": 300.0,
+     "40": 300.0,
+     "41": 63.972
+    }
+   }
+  },
+  {
+   "id": "k211",
+   "trips": [
+    "39170877",
+    "39170897"
+   ],
+   "cost": 640.5675,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 69.059,
+   "deadhead_cost": 103.5885,
+   "energy_cost": 36.979,
+   "grid_kwh_day": 88.8,
+   "refill_kwh": 192.1898,
+   "min_soc": 0.1351,
+   "final_soc": 0.1351,
+   "start_min": 277.6,
+   "end_min": 575.48,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 442.79,
+     "end_min": 460.55,
+     "power_kw": 300.0,
+     "grid_kwh": 88.79999999999995,
+     "soc_before": 0.22316962061560497,
+     "soc_after": 0.6227696206156047
+    }
+   ],
+   "energy_by_slot": {
+    "29": 36.05,
+    "30": 52.75
+   },
+   "power_by_station": {
+    "S3": {
+     "29": 144.2,
+     "30": 211.0
+    }
+   }
+  },
+  {
+   "id": "k294",
+   "trips": [
+    "39170993"
+   ],
+   "cost": 564.443,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 33.959,
+   "deadhead_cost": 50.9385,
+   "energy_cost": 13.5045,
+   "grid_kwh_day": 0,
+   "refill_kwh": 135.0449,
+   "min_soc": 0.3923,
+   "final_soc": 0.3923,
+   "start_min": 279.09,
+   "end_min": 405.01,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k324",
+   "trips": [
+    "39170993",
+    "39170857",
+    "39170847"
+   ],
+   "cost": 587.7259,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.002,
+   "deadhead_cost": 52.503,
+   "energy_cost": 35.2229,
+   "grid_kwh_day": 84.55,
+   "refill_kwh": 183.1286,
+   "min_soc": 0.1759,
+   "final_soc": 0.1759,
+   "start_min": 279.09,
+   "end_min": 694.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 371.64,
+     "end_min": 388.55,
+     "power_kw": 300.0,
+     "grid_kwh": 84.55000000000013,
+     "soc_before": 0.5478021898115009,
+     "soc_after": 0.9282771898115014
+    }
+   ],
+   "energy_by_slot": {
+    "24": 16.8,
+    "25": 67.75
+   },
+   "power_by_station": {
+    "S3": {
+     "24": 67.2,
+     "25": 271.0
+    }
+   }
+  },
+  {
+   "id": "k326",
+   "trips": [
+    "39170993",
+    "39170857",
+    "39170847",
+    "39170851",
+    "39170830"
+   ],
+   "cost": 615.5087,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 36.045,
+   "deadhead_cost": 54.0675,
+   "energy_cost": 61.4412,
+   "grid_kwh_day": 214.1,
+   "refill_kwh": 186.2122,
+   "min_soc": 0.162,
+   "final_soc": 0.162,
+   "start_min": 279.09,
+   "end_min": 898.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 371.64,
+     "end_min": 388.55,
+     "power_kw": 300.0,
+     "grid_kwh": 84.55000000000013,
+     "soc_before": 0.5478021898115009,
+     "soc_after": 0.9282771898115014
+    },
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 660.64,
+     "end_min": 686.55,
+     "power_kw": 300.0,
+     "grid_kwh": 129.54999999999984,
+     "soc_before": 0.3314258375089483,
+     "soc_after": 0.9144008375089476
+    }
+   ],
+   "energy_by_slot": {
+    "24": 16.8,
+    "25": 67.75,
+    "44": 71.8,
+    "45": 57.75
+   },
+   "power_by_station": {
+    "S3": {
+     "24": 67.2,
+     "25": 271.0,
+     "44": 287.2,
+     "45": 231.0
+    }
+   }
+  },
+  {
+   "id": "k451",
+   "trips": [
+    "39170867"
+   ],
+   "cost": 565.3699,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 34.44,
+   "deadhead_cost": 51.66,
+   "energy_cost": 13.7099,
+   "grid_kwh_day": 0,
+   "refill_kwh": 137.099,
+   "min_soc": 0.3831,
+   "final_soc": 0.3831,
+   "start_min": 294.6,
+   "end_min": 425.48,
+   "charges": [],
+   "energy_by_slot": {},
+   "power_by_station": {}
+  },
+  {
+   "id": "k452",
+   "trips": [
+    "39170867",
+    "39171011",
+    "39170892"
+   ],
+   "cost": 593.1528,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.483,
+   "deadhead_cost": 53.2245,
+   "energy_cost": 39.9283,
+   "grid_kwh_day": 129.55,
+   "refill_kwh": 140.1826,
+   "min_soc": 0.2449,
+   "final_soc": 0.3692,
+   "start_min": 294.6,
+   "end_min": 603.48,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 465.64,
+     "end_min": 491.55,
+     "power_kw": 300.0,
+     "grid_kwh": 129.55000000000013,
+     "soc_before": 0.24493200787401576,
+     "soc_after": 0.8279070078740163
+    }
+   ],
+   "energy_by_slot": {
+    "31": 71.8,
+    "32": 57.75
+   },
+   "power_by_station": {
+    "S3": {
+     "31": 287.2,
+     "32": 231.0
+    }
+   }
+  },
+  {
+   "id": "k476",
+   "trips": [
+    "39170867",
+    "39171011",
+    "39171024",
+    "39170825"
+   ],
+   "cost": 603.8951,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 35.745,
+   "deadhead_cost": 53.6175,
+   "energy_cost": 50.2776,
+   "grid_kwh_day": 167.7929,
+   "refill_kwh": 167.1902,
+   "min_soc": 0.2449,
+   "final_soc": 0.2476,
+   "start_min": 294.6,
+   "end_min": 800.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 465.64,
+     "end_min": 499.19857742782153,
+     "power_kw": 300.0,
+     "grid_kwh": 167.7928871391076,
+     "soc_before": 0.24493200787401576,
+     "soc_after": 1.0
+    }
+   ],
+   "energy_by_slot": {
+    "31": 71.8,
+    "32": 75.0,
+    "33": 20.9929
+   },
+   "power_by_station": {
+    "S3": {
+     "31": 287.2,
+     "32": 300.0,
+     "33": 83.972
+    }
+   }
+  },
+  {
+   "id": "k497",
+   "trips": [
+    "39170867",
+    "39170892"
+   ],
+   "cost": 638.7698,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 68.88,
+   "deadhead_cost": 103.32,
+   "energy_cost": 35.4498,
+   "grid_kwh_day": 80.3,
+   "refill_kwh": 193.8979,
+   "min_soc": 0.1275,
+   "final_soc": 0.1275,
+   "start_min": 294.6,
+   "end_min": 603.48,
+   "charges": [
+    {
+     "station": "DEPOT",
+     "location": "DEPOT",
+     "start_min": 425.48,
+     "end_min": 457.6,
+     "power_kw": 150.0,
+     "grid_kwh": 80.30000000000001,
+     "soc_before": 0.38305464209019335,
+     "soc_after": 0.7444046420901934
+    }
+   ],
+   "energy_by_slot": {
+    "28": 23.8,
+    "29": 37.5,
+    "30": 19.0
+   },
+   "power_by_station": {
+    "DEPOT": {
+     "28": 95.2,
+     "29": 150.0,
+     "30": 76.0
+    }
+   }
+  },
+  {
+   "id": "k581",
+   "trips": [
+    "39170979",
+    "39468704",
+    "39171003",
+    "39171024",
+    "39170825"
+   ],
+   "cost": 617.4109,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 36.045,
+   "deadhead_cost": 54.0675,
+   "energy_cost": 63.3434,
+   "grid_kwh_day": 233.122,
+   "refill_kwh": 167.1902,
+   "min_soc": 0.2476,
+   "final_soc": 0.2476,
+   "start_min": 309.09,
+   "end_min": 800.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 403.64,
+     "end_min": 423.7376804528222,
+     "power_kw": 300.0,
+     "grid_kwh": 100.48840226411092,
+     "soc_before": 0.5478021898115009,
+     "soc_after": 1.0
+    },
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 584.64,
+     "end_min": 611.1667267690024,
+     "power_kw": 300.0,
+     "grid_kwh": 132.6336338450118,
+     "soc_before": 0.403148647697447,
+     "soc_after": 1.0
+    }
+   ],
+   "energy_by_slot": {
+    "26": 6.8,
+    "27": 75.0,
+    "28": 18.6884,
+    "38": 1.8,
+    "39": 75.0,
+    "40": 55.8336
+   },
+   "power_by_station": {
+    "S3": {
+     "26": 27.2,
+     "27": 300.0,
+     "28": 74.754,
+     "38": 7.2,
+     "39": 300.0,
+     "40": 223.335
+    }
+   }
+  },
+  {
+   "id": "k582",
+   "trips": [
+    "39170979",
+    "39468704",
+    "39171003",
+    "39171024",
+    "39170841"
+   ],
+   "cost": 617.4109,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 36.045,
+   "deadhead_cost": 54.0675,
+   "energy_cost": 63.3434,
+   "grid_kwh_day": 233.122,
+   "refill_kwh": 167.1902,
+   "min_soc": 0.2476,
+   "final_soc": 0.2476,
+   "start_min": 309.09,
+   "end_min": 860.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 403.64,
+     "end_min": 423.7376804528222,
+     "power_kw": 300.0,
+     "grid_kwh": 100.48840226411092,
+     "soc_before": 0.5478021898115009,
+     "soc_after": 1.0
+    },
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 584.64,
+     "end_min": 611.1667267690024,
+     "power_kw": 300.0,
+     "grid_kwh": 132.6336338450118,
+     "soc_before": 0.403148647697447,
+     "soc_after": 1.0
+    }
+   ],
+   "energy_by_slot": {
+    "26": 6.8,
+    "27": 75.0,
+    "28": 18.6884,
+    "38": 1.8,
+    "39": 75.0,
+    "40": 55.8336
+   },
+   "power_by_station": {
+    "S3": {
+     "26": 27.2,
+     "27": 300.0,
+     "28": 74.754,
+     "38": 7.2,
+     "39": 300.0,
+     "40": 223.335
+    }
+   }
+  },
+  {
+   "id": "k585",
+   "trips": [
+    "39170979",
+    "39468704",
+    "39171003",
+    "39170927",
+    "39170841"
+   ],
+   "cost": 617.4109,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 36.045,
+   "deadhead_cost": 54.0675,
+   "energy_cost": 63.3434,
+   "grid_kwh_day": 233.122,
+   "refill_kwh": 167.1902,
+   "min_soc": 0.2476,
+   "final_soc": 0.2476,
+   "start_min": 309.09,
+   "end_min": 860.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 403.64,
+     "end_min": 423.7376804528222,
+     "power_kw": 300.0,
+     "grid_kwh": 100.48840226411092,
+     "soc_before": 0.5478021898115009,
+     "soc_after": 1.0
+    },
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 584.64,
+     "end_min": 611.1667267690024,
+     "power_kw": 300.0,
+     "grid_kwh": 132.6336338450118,
+     "soc_before": 0.403148647697447,
+     "soc_after": 1.0
+    }
+   ],
+   "energy_by_slot": {
+    "26": 6.8,
+    "27": 75.0,
+    "28": 18.6884,
+    "38": 1.8,
+    "39": 75.0,
+    "40": 55.8336
+   },
+   "power_by_station": {
+    "S3": {
+     "26": 27.2,
+     "27": 300.0,
+     "28": 74.754,
+     "38": 7.2,
+     "39": 300.0,
+     "40": 223.335
+    }
+   }
+  },
+  {
+   "id": "k598",
+   "trips": [
+    "39170979",
+    "39468704",
+    "39171007",
+    "39170927",
+    "39170841"
+   ],
+   "cost": 617.1026,
+   "vehicle_cost": 500.0,
+   "deadhead_km": 36.045,
+   "deadhead_cost": 54.0675,
+   "energy_cost": 63.0351,
+   "grid_kwh_day": 230.0384,
+   "refill_kwh": 170.2738,
+   "min_soc": 0.2338,
+   "final_soc": 0.2338,
+   "start_min": 309.09,
+   "end_min": 860.01,
+   "charges": [
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 403.64,
+     "end_min": 423.7376804528222,
+     "power_kw": 300.0,
+     "grid_kwh": 100.48840226411092,
+     "soc_before": 0.5478021898115009,
+     "soc_after": 1.0
+    },
+    {
+     "station": "S3",
+     "location": "S3",
+     "start_min": 630.64,
+     "end_min": 656.55,
+     "power_kw": 300.0,
+     "grid_kwh": 129.54999999999984,
+     "soc_before": 0.403148647697447,
+     "soc_after": 0.9861236476974463
+    }
+   ],
+   "energy_by_slot": {
+    "26": 6.8,
+    "27": 75.0,
+    "28": 18.6884,
+    "42": 71.8,
+    "43": 57.75
+   },
+   "power_by_station": {
+    "S3": {
+     "26": 27.2,
+     "27": 300.0,
+     "28": 74.754,
+     "42": 287.2,
+     "43": 231.0
+    }
+   }
+  }
+ ],
+ "conflicts": [
+  [
+   1,
+   2
+  ],
+  [
+   1,
+   8
+  ],
+  [
+   1,
+   19
+  ],
+  [
+   2,
+   8
+  ],
+  [
+   2,
+   11
+  ],
+  [
+   2,
+   19
+  ],
+  [
+   5,
+   6
+  ],
+  [
+   5,
+   13
+  ],
+  [
+   5,
+   14
+  ],
+  [
+   6,
+   13
+  ],
+  [
+   6,
+   14
+  ],
+  [
+   7,
+   16
+  ],
+  [
+   7,
+   17
+  ],
+  [
+   7,
+   18
+  ],
+  [
+   10,
+   11
+  ],
+  [
+   13,
+   14
+  ],
+  [
+   16,
+   17
+  ],
+  [
+   16,
+   18
+  ],
+  [
+   16,
+   19
+  ],
+  [
+   17,
+   18
+  ],
+  [
+   17,
+   19
+  ],
+  [
+   18,
+   19
+  ]
+ ],
+ "tight_pairs": [
+  [
+   1,
+   5,
+   4.91
+  ],
+  [
+   1,
+   6,
+   4.91
+  ],
+  [
+   1,
+   11,
+   5.91
+  ],
+  [
+   1,
+   13,
+   4.91
+  ],
+  [
+   1,
+   14,
+   4.91
+  ],
+  [
+   2,
+   5,
+   4.91
+  ],
+  [
+   2,
+   6,
+   4.91
+  ],
+  [
+   2,
+   13,
+   4.91
+  ],
+  [
+   2,
+   14,
+   4.91
+  ],
+  [
+   8,
+   5,
+   4.91
+  ],
+  [
+   8,
+   6,
+   4.91
+  ],
+  [
+   8,
+   13,
+   4.91
+  ],
+  [
+   8,
+   14,
+   4.91
+  ],
+  [
+   16,
+   1,
+   0.098
+  ],
+  [
+   16,
+   2,
+   0.098
+  ],
+  [
+   17,
+   1,
+   0.098
+  ],
+  [
+   17,
+   2,
+   0.098
+  ],
+  [
+   18,
+   1,
+   0.098
+  ],
+  [
+   18,
+   2,
+   0.098
+  ],
+  [
+   19,
+   1,
+   0.098
+  ],
+  [
+   19,
+   2,
+   0.098
+  ],
+  [
+   19,
+   11,
+   5.91
+  ]
+ ],
+ "selection": {
+  "budget": 20,
+  "lp_objective": 3050.132737470947,
+  "anchor": [
+   2,
+   6,
+   10,
+   15,
+   18
+  ]
+ },
+ "best_on_selection": {
+  "columns": [
+   2,
+   6,
+   10,
+   15,
+   18
+  ],
+  "objective": 3081.0722078130384,
+  "n_vehicles": 5
+ },
+ "assumptions": {
+  "battery_kwh": 200.0,
+  "kwh_per_km": 1.8641135767120018,
+  "soc_min": 0.1,
+  "soc_max": 1.0,
+  "soc_start": 1.0,
+  "site_charger_kw": 300.0,
+  "chargers_per_site": 1,
+  "depot_charger_kw": 150.0,
+  "depot_chargers": 10,
+  "charge_efficiency": 0.9,
+  "min_charge_min": 5.0,
+  "charge_buffer_min": 10.0,
+  "detour_factor": 1.3,
+  "deadhead_speed_kmh": 30.0,
+  "min_layover_min": 5.0,
+  "slot_min": 15,
+  "tariff_day": 0.2,
+  "tariff_night": 0.1,
+  "night_start_h": 22.0,
+  "night_end_h": 6.0,
+  "vehicle_cost": 500.0,
+  "deadhead_cost_per_km": 1.5
+ }
+}
