@@ -188,3 +188,85 @@ def test_penalty_simulator_agrees_with_xy_space_energies(small):
     full = [space.full_index(s) for s in range(space.size)]
     assert np.allclose(land.energies[full], space.energies)
     assert FastQAOA(land).probabilities([0.0], [0.0]).sum() == pytest.approx(1.0)
+
+
+# ---------------------------------------------------------------- event-time consistency (PR #6)
+
+def test_history_before_the_event_is_kept(setup):
+    from evsp.disruption import _history_matches
+
+    inst, sched = setup
+    for ev in (Disruption.charger_outage("S3", 7 * 60, 9 * 60), Disruption.bus_failure(sched, "k4", 6 * 60)):
+        rp = build_repair_problem(inst, sched, ev, reserves=1)
+        for bus, col in rp.base_plans.items():
+            if not bus.endswith("*"):
+                assert _history_matches(sched.duties[bus], col, inst, ev.at_min), (ev.describe(), bus)
+
+
+def test_charger_outage_reroutes_instead_of_rewriting_the_past(setup):
+    inst, sched = setup
+    ev = Disruption.charger_outage("S3", 7 * 60, 9 * 60)
+    rp = build_repair_problem(inst, sched, ev, reserves=1, max_bus_options=2)
+    k4 = rp.base_plans["k4"]                      # stranded at 24 % SoC after 07:13: charges after the outage
+    assert all(ch.start_min >= 7 * 60 for ch in k4.charges)
+    assert k4.trips == sched.duties["k4"].trips[:2]
+    space = OneHotSpace.from_problem(rp)
+    from evsp.xy_qaoa import best_valid_state
+    state, plan, rank = best_valid_state(inst, rp, space)
+    assert rank == 0 and plan.feasible and not plan.cancelled
+
+
+def test_trip_in_progress_can_only_be_cancelled(setup):
+    inst, sched = setup
+    rp = build_repair_problem(inst, sched, Disruption.bus_failure(sched, "k4", 6 * 60 + 30), reserves=2)
+    running = [t for t in sched.duties["k4"].trips if inst.trip_by_id[t].dep_min < 6 * 60 + 30]
+    assert running[-1] in rp.trips
+    g = rp.groups[rp.trips.index(running[-1])]
+    assert [rp.options[k].kind for k in g] == ["cancel"]
+
+
+def test_same_bus_conflicts_are_replayed_pairs(setup, demo):
+    inst, sched = setup
+    strict = build_repair_problem(inst, sched, Disruption.bus_failure(sched, "k4", 6 * 60), reserves=3,
+                                  one_trip_per_bus=True)
+    assert set(demo.conflicts) < set(strict.conflicts)
+    allowed = [(k, l) for k in range(demo.n) for l in range(k + 1, demo.n)
+               if demo.options[k].target and demo.options[k].target == demo.options[l].target
+               and demo.options[k].trip != demo.options[l].trip and (k, l) not in set(demo.conflicts)]
+    assert allowed                                # some bus can take two affected trips
+    for k, l in allowed:                          # and every such pair really replays
+        x = np.zeros(demo.n, dtype=int)
+        for g in demo.groups:
+            x[g[-1]] = 1
+        for v in (k, l):
+            x[[g for g in demo.groups if v in g][0][-1]] = 0
+            x[v] = 1
+        assert apply_assignment(inst, demo, x).feasible
+
+
+def test_malformed_bitstrings_are_rejected(demo):
+    q = demo.to_qubo()
+    with pytest.raises(ValueError):
+        q.energy(np.full(demo.n, 0.7))
+    with pytest.raises(ValueError):
+        q.energy(np.zeros(demo.n + 1))
+    with pytest.raises(ValueError):
+        apply_assignment(None, demo, np.full(demo.n, 0.5))
+
+
+def test_cancel_all_fallback(setup, demo):
+    from evsp.disruption import cancel_all_assignment
+
+    inst, _ = setup
+    x, plan = cancel_all_assignment(inst, demo)
+    assert plan.feasible and sorted(plan.cancelled) == sorted(demo.trips) and x.sum() == len(demo.trips)
+
+
+def test_stranded_bus_keeps_the_trips_it_already_drove(setup):
+    inst, sched = setup
+    ev = Disruption.charger_outage("S3", 7 * 60 + 30, 8 * 60 + 30)    # k4 is charging at S3 at 07:30
+    rp = build_repair_problem(inst, sched, ev, reserves=1, max_bus_options=1)
+    assert "k4*" in rp.base_plans and "k4" not in rp.base_plans
+    tb = inst.trip_by_id
+    assert all(tb[t].dep_min >= ev.at_min for t in rp.trips)
+    assert set(rp.trips) >= {t for t in sched.duties["k4"].trips if tb[t].dep_min >= ev.at_min}

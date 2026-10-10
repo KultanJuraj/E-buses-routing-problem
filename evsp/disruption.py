@@ -46,13 +46,19 @@ EPS = 1e-9
 def plan_duty(inst: Instance, trip_ids: list[str], earliest_start: Optional[float] = None,
               blocked: Optional[dict[str, list[tuple[float, float]]]] = None,
               charge_below: float = 0.6, max_stations: int = 3, vehicle_cost: Optional[float] = None,
-              col_id: str = "plan") -> Optional[Column]:
+              col_id: str = "plan", history: Optional[list[ChargeStop]] = None,
+              not_before: Optional[float] = None) -> Optional[Column]:
     """Greedy, deterministic duty for a fixed trip sequence, or None if infeasible.
 
     depot -> trips in departure order -> depot. Between two trips the bus charges
     (as long as the gap allows, up to soc_max) at the nearest unblocked station if
     its SoC is below `charge_below`, or if the next trip is otherwise out of
     battery reach. `blocked[station]` lists unavailable time windows.
+
+    Re-planning after an event at time tau: `history` are the charging stops that
+    already started before tau (kept as they are, in the gap they belong to) and
+    `not_before=tau` forbids any other charging stop from starting earlier, so the
+    plan only changes what happens after the event.
     """
     a = inst.assumptions
     tb = inst.trip_by_id
@@ -80,10 +86,24 @@ def plan_duty(inst: Instance, trip_ids: list[str], earliest_start: Optional[floa
     if soc < soc_min - EPS:
         return None
 
+    history = sorted(history or [], key=lambda c: c.start_min)
+
+    def fixed_charge(i, j, soc_now, ch):
+        km_in, km_out = inst.dh_km(i.end, ch.location), inst.dh_km(ch.location, j.start)
+        s_arr = soc_now - km_in * kwh_km
+        if s_arr < soc_min - EPS:
+            return None
+        s_chg = min(soc_max, s_arr + eta * ch.power_kw * (ch.end_min - ch.start_min) / 60.0)
+        s1 = s_chg - km_out * kwh_km - j.energy_kwh
+        if s1 < soc_min - EPS:
+            return None
+        return replace(ch, soc_before=s_arr / cap, soc_after=s_chg / cap), s1, km_in + km_out, min(s_arr, s1)
+
     def try_charge(i, j, soc_now):
         opts = []
+        ready = i.arr_min if not_before is None else max(i.arr_min, not_before)
         for st in stations:
-            t_arr = i.arr_min + inst.dh_min(i.end, st.location)
+            t_arr = ready + inst.dh_min(i.end, st.location)
             t_leave = j.dep_min - layover - inst.dh_min(st.location, j.start)
             if t_leave - t_arr < min_charge:
                 continue
@@ -106,9 +126,48 @@ def plan_duty(inst: Instance, trip_ids: list[str], earliest_start: Optional[floa
             return stop, s1, km_in + km_out, min(s_arr, s1)
         return None
 
+    def charge_home(i, soc_now):
+        """Shortest charge after the last trip that is enough to get back to the depot."""
+        ready = i.arr_min if not_before is None else max(i.arr_min, not_before)
+        opts = sorted((inst.dh_km(i.end, st.location) + inst.dh_km(st.location, depot), st.id, st)
+                      for st in stations if st.location != depot)
+        for _, _, st in opts[:max_stations]:
+            km_in, km_out = inst.dh_km(i.end, st.location), inst.dh_km(st.location, depot)
+            s_arr = soc_now - km_in * kwh_km
+            if s_arr < soc_min - EPS:
+                continue
+            rate = eta * st.power_kw / 60.0
+            dur = max(min_charge, (soc_min + km_out * kwh_km - s_arr) / rate)
+            start = ready + inst.dh_min(i.end, st.location)
+            for _ in range(20):                       # wait until the station is free
+                clash = [e for s_, e in blocked.get(st.id, []) if s_ < start + dur - EPS and start < e - EPS]
+                if not clash:
+                    break
+                start = max(clash)
+            else:
+                continue
+            s_chg = min(soc_max, s_arr + rate * dur)
+            s_end = s_chg - km_out * kwh_km
+            if s_end < soc_min - EPS:
+                continue
+            stop = ChargeStop(station=st.id, location=st.location, start_min=start, end_min=start + dur,
+                              power_kw=st.power_kw, grid_kwh=st.power_kw * dur / 60.0,
+                              soc_before=s_arr / cap, soc_after=s_chg / cap)
+            return stop, s_end, km_in + km_out, min(s_arr, s_end), start + dur + inst.dh_min(st.location, depot)
+        return None
+
     for i, j in zip(trips, trips[1:]):
         if not inst.can_follow(i, j):
             return None
+        fixed = [ch for ch in history if i.arr_min - EPS <= ch.start_min < j.dep_min]
+        if fixed:                                     # charging that already happened before the event
+            charged = fixed_charge(i, j, soc, fixed[0])
+            if charged is None:
+                return None
+            stop, s1, km, low = charged
+            charges.append(stop)
+            soc, dh_km, min_soc = s1, dh_km + km, min(min_soc, low)
+            continue
         charged = try_charge(i, j, soc) if soc / cap < charge_below else None
         if charged is None:
             km = inst.dh_km(i.end, j.start)
@@ -125,10 +184,16 @@ def plan_duty(inst: Instance, trip_ids: list[str], earliest_start: Optional[floa
     last = trips[-1]
     km = inst.dh_km(last.end, depot)
     soc_end = soc - km * kwh_km
-    if soc_end < soc_min - EPS:
-        return None
+    t_end = last.arr_min + inst.dh_min(last.end, depot)
+    if soc_end < soc_min - EPS:                       # cannot reach the depot: top up on the way home
+        home = charge_home(last, soc)
+        if home is None:
+            return None
+        stop, soc_end, km, low, t_end = home
+        charges.append(stop)
+        min_soc = min(min_soc, low)
     return _make_column(inst, col_id, [t.id for t in trips], charges, dh_km + km, min(min_soc, soc_end),
-                        soc_end, t0, last.arr_min + inst.dh_min(last.end, depot), vehicle_cost)
+                        soc_end, t0, t_end, vehicle_cost)
 
 
 def _make_column(inst: Instance, col_id: str, trips: list[str], charges: list[ChargeStop], dh_km: float,
@@ -232,6 +297,26 @@ def _history_matches(before: Column, after: Column, inst: Instance, at_min: floa
     return past_charges(before) == past_charges(after)
 
 
+def _past_charges(col: Column, event: "Disruption") -> list[ChargeStop]:
+    """Charging stops of a duty that started before the event (cut at the outage start)."""
+    out = []
+    for ch in col.charges:
+        if ch.start_min >= event.at_min:
+            continue
+        if event.kind == "charger" and ch.station == event.station and ch.end_min > event.at_min:
+            ch = replace(ch, end_min=event.at_min, grid_kwh=ch.power_kw * (event.at_min - ch.start_min) / 60.0)
+        out.append(ch)
+    return out
+
+
+def _replan(inst: Instance, col: Column, trips: list[str], event: "Disruption",
+            blocked: dict[str, list[tuple[float, float]]], col_id: str) -> Optional[Column]:
+    """New duty of an existing bus for `trips`; everything before the event stays as it was."""
+    plan = plan_duty(inst, trips, blocked=blocked, vehicle_cost=col.vehicle_cost, col_id=col_id,
+                     history=_past_charges(col, event), not_before=event.at_min)
+    return plan if plan is not None and _history_matches(col, plan, inst, event.at_min) else None
+
+
 # --------------------------------------------------------------------------- repair problem
 
 @dataclass
@@ -294,13 +379,19 @@ class RepairProblem:
 
 def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, max_bus_options: int = 3,
                          reserves: int = 1, reserve_cost: Optional[float] = None,
-                         cancel_cost: Optional[float] = None) -> RepairProblem:
+                         cancel_cost: Optional[float] = None, one_trip_per_bus: bool = False) -> RepairProblem:
     """Affected trips, their options and pairwise conflicts.
 
     Costs are extra cost against the disrupted schedule: inserting trip t into bus v
     costs plan(v + t) - plan(v); a reserve bus costs `reserve_cost` per trip plus
     its deadhead and energy (the activation is counted per trip, an upper bound
     for a reserve doing several trips); cancelling costs `cancel_cost` per trip.
+
+    Conflicts: two options on the same bus conflict when that bus cannot drive both
+    trips (checked by replay; `one_trip_per_bus=True` forbids every pair instead),
+    and options of different buses conflict when their charging overlaps at one
+    station. Combinations of three or more trips are only checked when a solution is
+    replayed (apply_assignment, best_valid_state).
     """
     a = inst.assumptions
     reserve_cost = a["vehicle_cost"] if reserve_cost is None else reserve_cost
@@ -331,8 +422,8 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
             base[bus] = col
             continue
         others = _merge(blocked, schedule.occupied(exclude=(bus,)))
-        plan = plan_duty(inst, col.trips, blocked=others, vehicle_cost=col.vehicle_cost, col_id=bus)
-        if plan is not None and _history_matches(col, plan, inst, event.at_min):
+        plan = _replan(inst, col, col.trips, event, others, bus)
+        if plan is not None:
             base[bus] = plan                                          # re-routed to another charger
             continue
         cut = min(ch.start_min for ch in col.charges if ch.station == event.station
@@ -340,15 +431,17 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
         keep = [t for t in col.trips if tb[t].dep_min < cut]
         plan = None
         while keep:              # without that charge the bus may not even get back: hand over more trips
-            plan = plan_duty(inst, keep, blocked=others, vehicle_cost=col.vehicle_cost, col_id=bus)
-            if plan is not None and _history_matches(col, plan, inst, event.at_min):
+            plan = _replan(inst, col, keep, event, others, bus)
+            if plan is not None:
                 break
-            plan = None
             keep = keep[:-1]
-        affected += [t for t in col.trips if t not in keep]
         if plan is not None:
             base[bus] = plan
-        elif any(tb[t].dep_min < event.at_min for t in col.trips):
+            affected += [t for t in col.trips if t not in keep]
+            continue
+        # trips that started before the event were driven: only the rest is handed over
+        affected += [t for t in col.trips if tb[t].dep_min >= event.at_min]
+        if any(tb[t].dep_min < event.at_min for t in col.trips):
             # The whole duty may be impossible to replay even though its earlier
             # trips are already committed. Keep its past charger occupancy and
             # exclude it from future assignments, as for a failed bus.
@@ -374,12 +467,10 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
             return plan_duty(inst, extra, earliest_start=event.at_min, blocked=occupied_except(None),
                              vehicle_cost=0.0, col_id=target)
         col = base[target]
-        plan = plan_duty(inst, col.trips + extra, blocked=occupied_except(target), vehicle_cost=col.vehicle_cost,
-                         col_id=target)
-        return plan if plan is not None and _history_matches(col, plan, inst, event.at_min) else None
+        return _replan(inst, col, col.trips + extra, event, occupied_except(target), target)
 
-    base_cost = {b: (plan_duty(inst, base[b].trips, blocked=occupied_except(b),
-                               vehicle_cost=base[b].vehicle_cost) or base[b]).cost for b in buses}
+    base_cost = {b: (_replan(inst, base[b], base[b].trips, event, occupied_except(b), b) or base[b]).cost
+                 for b in buses}
 
     # ---- options per trip
     options: list[Option] = []
@@ -413,7 +504,7 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
         if ok.target == ol.target:
             # A target may take multiple affected trips when their combined duty
             # is feasible; only incompatible pairs belong in O_v.
-            conflict = plan_with(ok.target, [ok.trip, ol.trip]) is None
+            conflict = one_trip_per_bus or plan_with(ok.target, [ok.trip, ol.trip]) is None
         elif k in option_plans and l in option_plans:
             # Replace the two independently planned duties in the base schedule,
             # then check the actual connector capacity for their combined charges.
@@ -430,7 +521,8 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
     return RepairProblem(event=event, trips=affected, options=options, groups=groups, conflicts=conflicts,
                          base_plans=base, blocked=dict(blocked),
                          settings={"max_bus_options": max_bus_options, "reserves": reserves,
-                                   "reserve_cost": reserve_cost, "cancel_cost": cancel_cost})
+                                   "reserve_cost": reserve_cost, "cancel_cost": cancel_cost,
+                                   "one_trip_per_bus": one_trip_per_bus})
 
 
 def _merge(*maps: dict[str, list[tuple[float, float]]]) -> dict[str, list[tuple[float, float]]]:
@@ -492,10 +584,8 @@ def apply_assignment(inst: Instance, rp: RepairProblem, x) -> RepairPlan:
                 total += rp.settings["reserve_cost"] + plan.cost - plan.vehicle_cost
         else:
             col = rp.base_plans[target]
-            plan = plan_duty(inst, col.trips + trips, blocked=occupied, vehicle_cost=col.vehicle_cost, col_id=target)
-            if plan is not None and not _history_matches(col, plan, inst, rp.event.at_min):
-                plan = None
-            before = plan_duty(inst, col.trips, blocked=occupied, vehicle_cost=col.vehicle_cost) or col
+            plan = _replan(inst, col, col.trips + trips, rp.event, occupied, target)
+            before = _replan(inst, col, col.trips, rp.event, occupied, target) or col
             if plan is not None:
                 total += plan.cost - before.cost
         duties[target] = plan

@@ -32,7 +32,7 @@ from evsp.disruption import (Disruption, Schedule, apply_assignment, build_repai
                              cancel_all_assignment)  # noqa: E402
 from evsp.qaoa import circuit_metrics, qaoa_circuit, run_qaoa, sample_with_qiskit, shots_for_confidence  # noqa: E402
 from evsp.solvers import Landscape, simulated_annealing  # noqa: E402
-from evsp.xy_qaoa import OneHotSpace, XYQAOA, run_xy_qaoa, xy_qaoa_circuit  # noqa: E402
+from evsp.xy_qaoa import OneHotSpace, XYQAOA, best_valid_state, run_xy_qaoa, xy_qaoa_circuit  # noqa: E402
 
 
 def minutes(text: str) -> float:
@@ -82,6 +82,8 @@ def main() -> None:
     p.add_argument("--to", dest="end", help="outage end HH:MM")
     p.add_argument("--reserves", type=int, default=3)
     p.add_argument("--max-options", type=int, default=3, help="other buses considered per trip")
+    p.add_argument("--one-trip-per-bus", action="store_true",
+                   help="conservative model: each bus or reserve takes at most one affected trip")
     p.add_argument("--p-max", type=int, default=3)
     p.add_argument("--alpha", type=float, default=0.2)
     p.add_argument("--maxiter", type=int, default=150)
@@ -111,7 +113,8 @@ def main() -> None:
         p.error("give --bus/--at or --charger/--from/--to")
 
     print(f"schedule: {len(sched.duties)} buses {sorted(sched.duties)} | event: {event.describe()}")
-    rp = build_repair_problem(inst, sched, event, max_bus_options=args.max_options, reserves=args.reserves)
+    rp = build_repair_problem(inst, sched, event, max_bus_options=args.max_options, reserves=args.reserves,
+                              one_trip_per_bus=args.one_trip_per_bus)
     tb = inst.trip_by_id
     print(f"affected trips: {len(rp.trips)} | qubits: {rp.n} | one-hot states: {rp.subspace_size} of 2^{rp.n} "
           f"| conflicts: {len(rp.conflicts)}")
@@ -126,12 +129,15 @@ def main() -> None:
     # ---- exact optimum in the one-hot subspace
     t = time.time()
     space = OneHotSpace.from_problem(rp)
-    best_state = int(np.argmin(space.energies))
-    x_opt = space.bits(best_state)
-    plan = apply_assignment(inst, rp, x_opt)
-    used_fallback = not plan.feasible
-    if used_fallback:
-        x_opt, plan = cancel_all_assignment(inst, rp)
+    valid = best_valid_state(inst, rp, space)
+    used_fallback = valid is None
+    if used_fallback:                                  # nothing cheap replays: cancel every affected trip
+        _, plan = cancel_all_assignment(inst, rp)
+        valid_rank = None
+    else:
+        _, plan, valid_rank = valid
+        if valid_rank:
+            print(f"  note: the {valid_rank} cheapest pairwise-model state(s) fail the full replay")
     print(f"\npairwise-model optimum ({time.time() - t:.1f}s): QUBO energy {space.optimum_energy:.1f}; "
           f"validated plan{' (cancel-all fallback)' if used_fallback else ''}: true extra cost "
           f"{plan.extra_cost:.1f}, cancelled {len(plan.cancelled)}, jointly feasible {plan.jointly_feasible}, "
@@ -140,7 +146,8 @@ def main() -> None:
     out["optimum"] = {"pairwise_model_energy": space.optimum_energy, "extra_cost": plan.extra_cost,
                       "assignment": plan.assignment,
                       "jointly_feasible": plan.jointly_feasible, "capacity_ok": plan.capacity_ok,
-                      "used_cancel_all_fallback": used_fallback, "problems": plan.problems}
+                      "used_cancel_all_fallback": used_fallback, "valid_state_rank": valid_rank,
+                      "problems": plan.problems}
 
     q = rp.to_qubo()
     rows = []

@@ -21,9 +21,11 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import asdict, dataclass, field
+from typing import Optional
+
 import numpy as np
 
-from .disruption import RepairProblem
+from .disruption import RepairPlan, RepairProblem, apply_assignment
 from .qaoa import _interp, shots_for_confidence
 
 ENERGY_TOL = 1e-6
@@ -92,6 +94,23 @@ class OneHotSpace:
     def full_index(self, state: int) -> int:
         """Index in the 2^n computational basis (little-endian, as Qiskit)."""
         return int(sum(1 << int(k) for k in np.flatnonzero(self.bits(state))))
+
+
+def best_valid_state(inst, rp: RepairProblem, space: OneHotSpace,
+                     max_tries: int = 500) -> Optional[tuple[int, RepairPlan, int]]:
+    """Lowest-energy one-hot state whose full replay is feasible: (state, plan, energy rank).
+
+    The pairwise model checks pairs of trips per bus; three or more trips on one bus
+    (or charger capacity across buses) are only verified here. None if no state among
+    the `max_tries` cheapest replays.
+    """
+    for rank, s in enumerate(np.argsort(space.energies, kind="stable")[:max_tries]):
+        if not space.feasible[s]:
+            continue
+        plan = apply_assignment(inst, rp, space.bits(int(s)))
+        if plan.feasible:
+            return int(s), plan, rank
+    return None
 
 
 # --------------------------------------------------------------------------- simulator
