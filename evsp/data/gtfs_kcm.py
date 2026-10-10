@@ -26,6 +26,8 @@ from typing import Iterable, Optional
 import numpy as np
 import pandas as pd
 
+from evsp.validation import SCHEMA_VERSION, validate_instance
+
 FT_PER_KM = 3280.84
 KM_PER_MILE = 1.609344
 WEEKDAY_SERVICE_ID = "86021"
@@ -65,6 +67,7 @@ class Assumptions:
     # Cost weights used by the objective (assumed; tune later).
     vehicle_cost: float = 500.0
     deadhead_cost_per_km: float = 1.5
+    peak_scope: str = "global"   # document's sum_t (sum_k p_kt y_k)^2
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -75,6 +78,8 @@ class Assumptions:
 def hms_to_min(value: str) -> float:
     """'25:10:30' -> 1510.5 (minutes after service-day midnight)."""
     h, m, s = (int(x) for x in value.strip().split(":"))
+    if h < 0 or not 0 <= m < 60 or not 0 <= s < 60:
+        raise ValueError(f"Invalid GTFS time: {value!r}")
     return h * 60 + m + s / 60.0
 
 
@@ -109,23 +114,25 @@ def load_trip_table(gtfs_dir: str | Path, service_id: str = WEEKDAY_SERVICE_ID) 
     st["stop_sequence"] = st["stop_sequence"].astype(int)
     st["shape_dist_traveled"] = pd.to_numeric(st["shape_dist_traveled"], errors="coerce")
     st = st.sort_values(["trip_id", "stop_sequence"])
-    first = st.groupby("trip_id", sort=False).first()
-    last = st.groupby("trip_id", sort=False).last()
+    # Keep actual endpoint rows: groupby.first/last skip nulls per column and
+    # can silently substitute an intermediate stop's cumulative distance.
+    first = st.drop_duplicates("trip_id", keep="first").set_index("trip_id")
+    last = st.drop_duplicates("trip_id", keep="last").set_index("trip_id")
 
     ends = pd.DataFrame({
         "start_stop": first["stop_id"],
         "dep_min": first["departure_time"].map(hms_to_min),
         "end_stop": last["stop_id"],
         "arr_min": last["arrival_time"].map(hms_to_min),
-        "dist_ft": last["shape_dist_traveled"] - first["shape_dist_traveled"].fillna(0.0),
+        "dist_ft": last["shape_dist_traveled"] - first["shape_dist_traveled"],
     })
 
     shapes = pd.read_csv(g / "shapes.txt",
                          dtype={"shape_id": str},
                          usecols=["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"])
     shapes = shapes[shapes["shape_id"].isin(set(trips["shape_id"]))].sort_values(["shape_id", "shape_pt_sequence"])
-    s_first = shapes.groupby("shape_id").first()
-    s_last = shapes.groupby("shape_id").last()
+    s_first = shapes.drop_duplicates("shape_id", keep="first").set_index("shape_id")
+    s_last = shapes.drop_duplicates("shape_id", keep="last").set_index("shape_id")
     shape_ends = pd.DataFrame({
         "start_lat": s_first["shape_pt_lat"], "start_lon": s_first["shape_pt_lon"],
         "end_lat": s_last["shape_pt_lat"], "end_lon": s_last["shape_pt_lon"],
@@ -137,7 +144,10 @@ def load_trip_table(gtfs_dir: str | Path, service_id: str = WEEKDAY_SERVICE_ID) 
     missing = df["dist_km"].isna() | (df["dist_km"] <= 0)
     df.loc[missing, "dist_km"] = 1.3 * haversine_km(df.loc[missing, "start_lat"], df.loc[missing, "start_lon"],
                                                     df.loc[missing, "end_lat"], df.loc[missing, "end_lon"])
-    df = df.dropna(subset=["dep_min", "arr_min", "start_lat", "end_lat"])
+    required = ["dep_min", "arr_min", "start_lat", "start_lon", "end_lat", "end_lon", "dist_km"]
+    bad = ~np.isfinite(df[required]).all(axis=1) | (df["arr_min"] <= df["dep_min"]) | (df["dist_km"] <= 0)
+    if bad.any():
+        raise ValueError(f"Invalid GTFS endpoints, times or distance for trips: {df.loc[bad, 'trip_id'].tolist()}")
     cols = ["trip_id", "route", "block_id", "direction_id", "start_stop", "end_stop", "dep_min", "arr_min",
             "dist_km", "start_lat", "start_lon", "end_lat", "end_lon"]
     return df[cols].sort_values(["dep_min", "trip_id"]).reset_index(drop=True)
@@ -227,7 +237,8 @@ def build_instance(trips: pd.DataFrame,
         depot_lat, depot_lon, synthetic = float(depot[0]), float(depot[1]), False
     locations.append({"id": "DEPOT", "type": "depot", "lat": depot_lat, "lon": depot_lon, "synthetic": synthetic})
 
-    chargers = [{"id": f"DEPOT-C{n + 1}", "location": "DEPOT", "station": "DEPOT", "power_kw": a.depot_charger_kw}
+    chargers = [{"id": f"DEPOT-C{n + 1}", "location": "DEPOT", "station": "DEPOT", "power_kw": a.depot_charger_kw,
+                 "availability": "assumed"}
                 for n in range(a.depot_chargers)]
     for i, s in enumerate(sites, start=1):
         if max_site_km is not None:
@@ -236,7 +247,8 @@ def build_instance(trips: pd.DataFrame,
                 continue
         loc_id = f"S{i}"
         locations.append({"id": loc_id, "type": "charger_site", "name": s["name"], "lat": s["lat"], "lon": s["lon"]})
-        chargers += [{"id": f"{loc_id}-C{n + 1}", "location": loc_id, "station": loc_id, "power_kw": a.site_charger_kw}
+        chargers += [{"id": f"{loc_id}-C{n + 1}", "location": loc_id, "station": loc_id, "power_kw": a.site_charger_kw,
+                      "availability": "assumed"}
                      for n in range(a.chargers_per_site)]
 
     # Deadhead matrix between every pair of locations (straight line * detour).
@@ -258,7 +270,8 @@ def build_instance(trips: pd.DataFrame,
     baseline = [{"block_id": b, "trips": list(g.sort_values("dep_min")["trip_id"])}
                 for b, g in trips.groupby("block_id")]
 
-    return {
+    instance = {
+        "schema_version": SCHEMA_VERSION,
         "name": name,
         "meta": {
             "source": "King County Metro GTFS (Feb 2020) via github.com/dan-mccabe/beb-chargers-pactrans",
@@ -282,10 +295,13 @@ def build_instance(trips: pd.DataFrame,
         "tariff": _tariff_slots(a, max(t["arr_min"] for t in trip_rows) + 120),
         "baseline_blocks": baseline,
     }
+    validate_instance(instance)
+    return instance
 
 
 def save_instance(instance: dict, path: str | Path) -> Path:
+    validate_instance(instance)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(instance, indent=1, ensure_ascii=False), encoding="utf-8")
+    path.write_text(json.dumps(instance, indent=1, ensure_ascii=False, allow_nan=False), encoding="utf-8")
     return path

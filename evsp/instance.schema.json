@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "E-VSP instance 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "name", "trips", "locations", "chargers", "deadhead", "tariff", "assumptions", "baseline_blocks"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "name": {"$ref": "#/$defs/id"},
+    "meta": {"type": "object"},
+    "trips": {"type": "array", "minItems": 1, "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "route", "block_id", "start", "end", "dep_min", "arr_min", "dist_km", "energy_kwh"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "route": {"$ref": "#/$defs/id"},
+        "block_id": {"$ref": "#/$defs/id"}, "direction_id": {"type": "string"},
+        "start": {"$ref": "#/$defs/id"}, "end": {"$ref": "#/$defs/id"},
+        "dep_min": {"$ref": "#/$defs/nonnegative"}, "arr_min": {"$ref": "#/$defs/nonnegative"},
+        "dist_km": {"$ref": "#/$defs/positive"}, "energy_kwh": {"$ref": "#/$defs/positive"}
+      }
+    }},
+    "locations": {"type": "array", "minItems": 1, "items": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "lat", "lon"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "type": {"enum": ["terminal", "depot", "charger_site"]},
+        "lat": {"type": "number", "minimum": -90, "maximum": 90},
+        "lon": {"type": "number", "minimum": -180, "maximum": 180},
+        "name": {"type": "string"}, "stop_id": {"type": "string"}, "synthetic": {"type": "boolean"}
+      }
+    }},
+    "chargers": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false, "required": ["id", "location", "station", "power_kw", "availability"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "location": {"$ref": "#/$defs/id"},
+        "station": {"$ref": "#/$defs/id"}, "power_kw": {"$ref": "#/$defs/positive"},
+        "availability": {"enum": ["assumed", "confirmed"]}
+      }
+    }},
+    "deadhead": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": {
+      "type": "object", "additionalProperties": false, "required": ["km", "min"],
+      "properties": {"km": {"$ref": "#/$defs/nonnegative"}, "min": {"$ref": "#/$defs/nonnegative"}}
+    }}},
+    "tariff": {"type": "array", "minItems": 1, "items": {
+      "type": "object", "additionalProperties": false, "required": ["t", "start_min", "price"],
+      "properties": {"t": {"type": "integer", "minimum": 0}, "start_min": {"$ref": "#/$defs/nonnegative"}, "price": {"$ref": "#/$defs/nonnegative"}}
+    }},
+    "baseline_blocks": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false, "required": ["block_id", "trips"],
+      "properties": {"block_id": {"$ref": "#/$defs/id"}, "trips": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}}}
+    }},
+    "assumptions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["battery_kwh", "kwh_per_km", "soc_min", "soc_max", "soc_start", "site_charger_kw", "chargers_per_site", "depot_charger_kw", "depot_chargers", "charge_efficiency", "min_charge_min", "detour_factor", "deadhead_speed_kmh", "min_layover_min", "slot_min", "tariff_day", "tariff_night", "night_start_h", "night_end_h", "vehicle_cost", "deadhead_cost_per_km", "peak_scope"],
+      "properties": {
+        "battery_kwh": {"$ref": "#/$defs/positive"}, "kwh_per_km": {"$ref": "#/$defs/positive"},
+        "soc_min": {"$ref": "#/$defs/fraction"}, "soc_max": {"$ref": "#/$defs/fraction"}, "soc_start": {"$ref": "#/$defs/fraction"},
+        "site_charger_kw": {"$ref": "#/$defs/positive"}, "depot_charger_kw": {"$ref": "#/$defs/positive"},
+        "chargers_per_site": {"type": "integer", "minimum": 0}, "depot_chargers": {"type": "integer", "minimum": 0},
+        "charge_efficiency": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+        "min_charge_min": {"$ref": "#/$defs/positive"}, "detour_factor": {"type": "number", "minimum": 1},
+        "deadhead_speed_kmh": {"$ref": "#/$defs/positive"}, "min_layover_min": {"$ref": "#/$defs/nonnegative"},
+        "slot_min": {"type": "integer", "minimum": 1}, "tariff_day": {"$ref": "#/$defs/nonnegative"}, "tariff_night": {"$ref": "#/$defs/nonnegative"},
+        "night_start_h": {"type": "number", "minimum": 0, "exclusiveMaximum": 24}, "night_end_h": {"type": "number", "minimum": 0, "exclusiveMaximum": 24},
+        "vehicle_cost": {"$ref": "#/$defs/nonnegative"}, "deadhead_cost_per_km": {"$ref": "#/$defs/nonnegative"},
+        "peak_scope": {"const": "global"}
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1},
+    "positive": {"type": "number", "exclusiveMinimum": 0},
+    "nonnegative": {"type": "number", "minimum": 0},
+    "fraction": {"type": "number", "minimum": 0, "maximum": 1}
+  }
+}
