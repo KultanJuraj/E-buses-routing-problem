@@ -13,6 +13,7 @@ found on the selection.
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 import time
 from pathlib import Path
@@ -40,12 +41,17 @@ def main() -> None:
     p.add_argument("--cg", action="store_true", help="column generation instead of full enumeration (big instances)")
     p.add_argument("--milp-time", type=float, default=60.0)
     p.add_argument("--out", type=Path, default=ROOT / "columns")
+    p.add_argument("--no-depot-charging", action="store_true",
+                   help="exclude depot charging when pairwise QUBO cannot represent its capacity")
     args = p.parse_args()
 
     inst = load_instance(args.instance)
-    if args.battery:
+    if args.battery is not None:
+        if not math.isfinite(args.battery) or args.battery <= 0:
+            p.error("--battery must be finite and positive")
         inst.assumptions["battery_kwh"] = args.battery
-    cfg = GenConfig(max_trips=args.max_trips, max_successors=args.max_successors)
+    cfg = GenConfig(max_trips=args.max_trips, max_successors=args.max_successors,
+                    allow_depot_charging=not args.no_depot_charging)
     print(inst.summary())
 
     t = time.time()
@@ -53,10 +59,14 @@ def main() -> None:
     invalid = [c.id for c in cs.columns if validate_column(inst, c)]
     print(f"columns: {len(cs.columns)} ({cs.stats['n_with_charging']} with charging) in {time.time() - t:.1f}s, "
           f"invalid on replay: {len(invalid)}")
+    if invalid:
+        p.error(f"Invalid columns; export stopped: {invalid[:10]}")
 
     sel = select_columns(cs, budget=args.budget, milp_time_limit=args.milp_time)
     sol = solve_milp(cs, sel.indices, time_limit=args.milp_time)
     chk = check_schedule(cs, sol.columns)
+    if not chk["ok"] or not math.isfinite(sol.objective):
+        p.error(f"No valid schedule to export: {sol.status}; {chk}")
     conflicts, tight = cs.pairs(sel.indices)
     print(f"LP bound {sel.lp_objective:.1f} | selected {len(sel.indices)} columns, C = {len(conflicts)} pairs, "
           f"r_kl = {len(tight)} pairs")
@@ -76,6 +86,7 @@ def main() -> None:
                       "anchor": [pos[k] for k in sel.anchor if k in pos]},
         "best_on_selection": {"columns": [pos[k] for k in sol.columns], "objective": sol.objective,
                               "n_vehicles": sol.n_vehicles},
+        "assumptions": inst.assumptions,
     })
     print(f"-> {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
 
