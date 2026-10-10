@@ -349,7 +349,13 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
         if plan is not None:
             base[bus] = plan
         elif any(tb[t].dep_min < event.at_min for t in col.trips):
-            raise ValueError(f"{event.describe()}: cannot preserve {bus}'s pre-event duty history")
+            # The whole duty may be impossible to replay even though its earlier
+            # trips are already committed. Keep its past charger occupancy and
+            # exclude it from future assignments, as for a failed bus.
+            past_charges = [replace(ch, end_min=min(ch.end_min, event.at_min),
+                                    grid_kwh=ch.power_kw * (min(ch.end_min, event.at_min) - ch.start_min) / 60.0)
+                            for ch in col.charges if ch.start_min < event.at_min]
+            base[f"{bus}*"] = replace(col, charges=past_charges)
     affected = sorted(set(affected), key=lambda t: (tb[t].dep_min, t))
     if not affected:
         raise ValueError(f"{event.describe()}: no trips are affected")
@@ -404,17 +410,20 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
         ok, ol = options[k], options[l]
         if ok.trip == ol.trip or ok.target is None or ol.target is None:
             continue
-        same_target = ok.target == ol.target
-        shared_charger = any(
-            a.station == b.station and a.start_min < b.end_min - EPS and b.start_min < a.end_min - EPS
-            for a in option_plans[k].charges
-            for b in option_plans[l].charges
-        ) if k in option_plans and l in option_plans else False
-        # Restrict each bus to one inserted trip. Also prevent simultaneous use of
-        # the same charger in the independently planned options; this is deliberately
-        # conservative for multi-plug stations and keeps higher-order capacity errors
-        # out of the pairwise QUBO.
-        if same_target or shared_charger:
+        if ok.target == ol.target:
+            # A target may take multiple affected trips when their combined duty
+            # is feasible; only incompatible pairs belong in O_v.
+            conflict = plan_with(ok.target, [ok.trip, ol.trip]) is None
+        elif k in option_plans and l in option_plans:
+            # Replace the two independently planned duties in the base schedule,
+            # then check the actual connector capacity for their combined charges.
+            replaced = {ok.target, ol.target}
+            duties = [col for bus, col in base.items() if bus not in replaced]
+            duties.extend((option_plans[k], option_plans[l]))
+            conflict = not _capacity_ok(inst, duties)
+        else:
+            conflict = False
+        if conflict:
             conflicts.add((k, l))
     conflicts = sorted(conflicts)
 
