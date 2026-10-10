@@ -5,3 +5,6 @@ scipy==1.17.0
 pytest==9.0.3
 # Only needed for the independent Bell-state smoke test in main.py.
 qiskit==2.3.0
+
+qiskit-optimization
+dimod

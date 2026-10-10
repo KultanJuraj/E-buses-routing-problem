@@ -1,5 +1,28 @@
 # E-VSP: data and instances (work package A)
 
+## QUBO builder (work package C)
+
+`evsp/qubo.py` builds one binary variable per selected duty. The default peak
+scope is grid-wide (`sum_t (sum_k p_kt y_k)^2`); `--peak-scope station` selects
+the alternative sum of independent station peaks. Tariff-based energy cost is
+the default so E2 remains comparable with the existing MILP objective. Use
+`--energy-basis kwh` to price daytime charging plus the overnight refill directly
+in grid kWh, as in the project formulation. `--normalize-costs` scales the duty
+cost component to at most 1 before automatic penalties are calculated.
+
+```sh
+python scripts/build_qubo.py --columns columns/kcm_tiny_b20.json --variant E4
+python scripts/build_qubo.py --columns columns/kcm_tiny_b20.json --variant E4 --tune
+```
+
+`--tune` sweeps the configured `R` and penalty-factor grids, uses brute force to
+check the exact ground state, and selects the feasible setting with the lowest
+grid peak (then cost). It is limited to 20 selected duties. The command validates
+an exact ground state before exporting and stops if it is infeasible; over 26
+variables it warns and exports without an exact check. Qiskit is pinned in
+`requirements.txt`; `qiskit-optimization` and `dimod` are optional imports needed
+only for their corresponding conversion methods.
+
 ## Column export safety (work package B)
 
 `scripts/build_columns.py` stops before export when replay or schedule validation
