@@ -23,9 +23,9 @@ if str(ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, solve_disruption  # noqa: E402
+from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, peak_schedules, solve_disruption  # noqa: E402
 from evsp.disruption import Disruption  # noqa: E402
-from evsp.viz import (describe_sk, gantt_figure, hhmm, method_figure, power_figure, scaling_figure,  # noqa: E402
+from evsp.viz import (describe_sk, gantt_figure, hhmm, method_figure, peak_comparison_figure, power_figure, scaling_figure,  # noqa: E402
                       schedule_kpis, soc_figure)
 
 st.set_page_config(page_title="E-bus rozvrh a kvantová oprava", layout="wide")
@@ -34,6 +34,11 @@ st.set_page_config(page_title="E-bus rozvrh a kvantová oprava", layout="wide")
 @st.cache_resource(show_spinner="Načítavam inštanciu a turnusy…")
 def data(columns: str, instance: str):
     return load_demo_data(Path(columns), Path(instance))
+
+
+@st.cache_resource(show_spinner="Porovnávam optimá pre R=0 a R>0…")
+def peak_data(columns: str, instance: str):
+    return peak_schedules(data(columns, instance))
 
 
 @st.cache_resource(show_spinner="Riešim opravu rozvrhu (presne, SA, XY-QAOA, QAOA s pokutami)…")
@@ -89,6 +94,11 @@ with tab_plan:
     left, right = st.columns(2)
     left.plotly_chart(soc_figure(d.inst, duties), key="soc0")
     right.plotly_chart(power_figure(duties), key="pow0")
+    peaks = peak_data(columns_path, instance_path)
+    st.plotly_chart(peak_comparison_figure(peaks), key="peak_compare")
+    if set(peaks["R=0"]) == set(peaks["R>0"]):
+        st.caption("Pri tomto pule turnusov vychádza rovnaký rozvrh pre R=0 aj R>0; "
+                   "pri zvolenej váhe špička neklesá.")
     st.dataframe(schedule_table(d.inst, duties), hide_index=True)
 
 # --------------------------------------------------------------------------- disruption

@@ -21,6 +21,7 @@ from .columns import Column, ColumnSet, load_columns
 from .disruption import (Disruption, RepairPlan, RepairProblem, Schedule, apply_assignment, build_repair_problem,
                          cancel_all_assignment)
 from .qaoa import circuit_metrics, run_qaoa, shots_for_confidence
+from .qubo import build_qubo, variant_weights
 from .solvers import Landscape, simulated_annealing
 from .xy_qaoa import XYQAOA, OneHotSpace, best_valid_state, run_xy_qaoa, xy_qaoa_circuit
 
@@ -42,6 +43,22 @@ def load_demo_data(columns: Path = DEFAULT_COLUMNS, instance: Path = DEFAULT_INS
     inst = load_instance(instance)
     inst.assumptions.update(cs.assumptions)          # same battery / costs as the columns
     return DemoData(inst=inst, cs=cs, schedule=Schedule.from_columns(cs), columns_path=Path(columns))
+
+
+def peak_schedules(data: DemoData) -> dict[str, dict[str, Column]]:
+    """Exact E4 schedules for the same column pool with and without peak penalty."""
+    from .solvers import index_to_bits
+
+    result = {}
+    for label, weight in (("R=0", 0.0), ("R>0", 1.0)):
+        q = build_qubo(data.cs, variant_weights("E4", data.cs.assumptions, R=weight))
+        land = Landscape.from_qubo(q)
+        if not land.feasible.any():
+            raise ValueError("no feasible schedule in the selected column pool")
+        x = index_to_bits(int(np.argmin(np.where(land.feasible, land.energies, np.inf))), q.n)
+        result[label] = {data.cs.columns[i].id: data.cs.columns[i]
+                         for i, selected in enumerate(x) if selected}
+    return result
 
 
 @dataclass
@@ -164,7 +181,11 @@ def _precomputed_penalty(event: Disruption, rp: RepairProblem, path: Optional[Pa
     if not path.exists():
         return None, f"skipped: {rp.n} qubits is too slow live; run scripts/run_repair.py to precompute"
     raw = json.loads(path.read_text(encoding="utf-8"))
-    if raw.get("n_qubits") != rp.n or "penalty_qaoa" not in raw:
+    if (raw.get("event") != event.__dict__ or raw.get("trips") != rp.trips
+            or raw.get("n_qubits") != rp.n or raw.get("subspace_size") != rp.subspace_size
+            or raw.get("options") != [o.__dict__ for o in rp.options]
+            or raw.get("conflicts") != [list(pair) for pair in rp.conflicts]
+            or "penalty_qaoa" not in raw):
         return None, f"skipped: {path.name} does not match this problem"
     best = max(raw["penalty_qaoa"]["layers"], key=lambda L: L["p_optimal"])
     return ({"method": "QAOA, X mixer + pokuty", "p_optimal": best["p_optimal"], "p_feasible": best["p_feasible"],

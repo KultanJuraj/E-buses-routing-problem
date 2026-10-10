@@ -5,6 +5,7 @@
     python scripts/make_figures.py --png --offline
 
 Writes figures/schedule_gantt.html, schedule_soc.html, schedule_power.html,
+schedule_peak_comparison.html,
 repair_<event>_before.html, repair_<event>_after.html, repair_<event>_methods.html
 and scaling_<file>.html for every results/*_scaling.json. Penalty QAOA above 16
 qubits is taken from results/repair_<event>.json (scripts/run_repair.py).
@@ -20,9 +21,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, solve_disruption  # noqa: E402
+from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, peak_schedules, solve_disruption  # noqa: E402
 from evsp.disruption import Disruption  # noqa: E402
-from evsp.viz import describe_sk, gantt_figure, method_figure, power_figure, scaling_figure, soc_figure  # noqa: E402
+from evsp.viz import describe_sk, gantt_figure, method_figure, peak_comparison_figure, power_figure, scaling_figure, soc_figure  # noqa: E402
 
 
 def minutes(s: str) -> int:
@@ -50,7 +51,8 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     figs = {"schedule_gantt": gantt_figure(d.inst, d.schedule.duties, title="Optimálny rozvrh"),
             "schedule_soc": soc_figure(d.inst, d.schedule.duties),
-            "schedule_power": power_figure(d.schedule.duties)}
+            "schedule_power": power_figure(d.schedule.duties),
+            "schedule_peak_comparison": peak_comparison_figure(peak_schedules(d))}
 
     if args.charger:
         ev = Disruption.charger_outage(args.charger, minutes(args.start), minutes(args.end))

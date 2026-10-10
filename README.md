@@ -64,9 +64,11 @@ python scripts/make_figures.py --charger S3 --from 07:00 --to 09:00
 The demo loads the 5-bus optimum of `columns/kcm_small_b20_bat200.json` on
 `instances/kcm_small.json`:
 
-- **Rozvrh**: Gantt chart (trips, charging with station, pull-out/pull-in),
+- **Rozvrh**: Gantt chart (trips, deadhead transfers, charging with station),
   battery SoC of every bus with the minimum-SoC line, grid power per 15 min
-  stacked by station with the peak, and a duty table.
+  stacked by station, an exact E4 grid-power comparison for R=0 and R=1,
+  and a duty table. The included 20-column pool has only one feasible schedule,
+  so both R curves coincide on this instance.
 - **Výpadok**: choose a failed bus and time (or a charger and outage window) and
   press *Pokaz autobus*. `evsp.demo.solve_disruption` builds the repair problem
   from package F, finds the exact optimum, and runs simulated annealing,

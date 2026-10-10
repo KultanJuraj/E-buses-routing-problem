@@ -71,17 +71,20 @@ def soc_timeline(inst: Instance, col: Column) -> tuple[list[float], list[float]]
     t_pts, s_pts = [col.start_min], [soc / cap]
     loc = inst.depot
     pending = sorted(col.charges, key=lambda c: c.start_min)
-    for n, tid in enumerate(col.trips):
+    def charge(ch):
+        nonlocal soc, loc
+        soc -= inst.dh_km(loc, ch.location) * kwh_km
+        t_pts.append(ch.start_min)
+        s_pts.append(soc / cap)
+        soc = min(a["soc_max"] * cap, soc + eta * ch.power_kw * (ch.end_min - ch.start_min) / 60.0)
+        t_pts.append(ch.end_min)
+        s_pts.append(soc / cap)
+        loc = ch.location
+
+    for tid in col.trips:
         t = tb[tid]
-        if n > 0 and pending and pending[0].start_min < t.dep_min:
-            ch = pending.pop(0)
-            soc -= inst.dh_km(loc, ch.location) * kwh_km
-            t_pts.append(ch.start_min)
-            s_pts.append(soc / cap)
-            soc = min(a["soc_max"] * cap, soc + eta * ch.power_kw * (ch.end_min - ch.start_min) / 60.0)
-            t_pts.append(ch.end_min)
-            s_pts.append(soc / cap)
-            loc = ch.location
+        while pending and pending[0].start_min < t.dep_min:
+            charge(pending.pop(0))
         soc -= inst.dh_km(loc, t.start) * kwh_km
         t_pts.append(t.dep_min)
         s_pts.append(soc / cap)
@@ -89,6 +92,8 @@ def soc_timeline(inst: Instance, col: Column) -> tuple[list[float], list[float]]
         t_pts.append(t.arr_min)
         s_pts.append(soc / cap)
         loc = t.end
+    for ch in pending:
+        charge(ch)
     soc -= inst.dh_km(loc, inst.depot) * kwh_km
     t_pts.append(col.end_min)
     s_pts.append(soc / cap)
@@ -142,9 +147,33 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
         first = tb[col.trips[0]]
         bar(bus, col.start_min, first.dep_min, GRAY, "prázdny presun",
             f"<b>{bus}</b> výjazd z depa<br>{hhmm(col.start_min)}-{hhmm(first.dep_min)}")
+        for prev_id, next_id in zip(col.trips, col.trips[1:]):
+            prev, nxt = tb[prev_id], tb[next_id]
+            gap_charge = next((ch for ch in col.charges
+                               if prev.arr_min <= ch.start_min < nxt.dep_min), None)
+            if gap_charge:
+                legs = [(prev.end, gap_charge.location, prev.arr_min),
+                        (gap_charge.location, nxt.start, gap_charge.end_min)]
+            else:
+                legs = [(prev.end, nxt.start, prev.arr_min)]
+            for origin, dest, start in legs:
+                end = start + inst.dh_min(origin, dest)
+                if end > start:
+                    bar(bus, start, end, GRAY, "prázdny presun",
+                        f"<b>{bus}</b> presun<br>{hhmm(start)}-{hhmm(end)}")
         last = tb[col.trips[-1]]
-        bar(bus, last.arr_min, col.end_min, GRAY, "prázdny presun",
-            f"<b>{bus}</b> návrat do depa<br>{hhmm(last.arr_min)}-{hhmm(col.end_min)}")
+        home_charge = next((ch for ch in col.charges if ch.start_min >= last.arr_min), None)
+        if home_charge:
+            legs = [(last.end, home_charge.location, last.arr_min),
+                    (home_charge.location, inst.depot, home_charge.end_min)]
+            for origin, dest, start in legs:
+                end = start + inst.dh_min(origin, dest)
+                if end > start:
+                    bar(bus, start, end, GRAY, "prázdny presun",
+                        f"<b>{bus}</b> návrat do depa<br>{hhmm(start)}-{hhmm(end)}")
+        else:
+            bar(bus, last.arr_min, col.end_min, GRAY, "prázdny presun",
+                f"<b>{bus}</b> návrat do depa<br>{hhmm(last.arr_min)}-{hhmm(col.end_min)}")
         for tid in col.trips:
             t = tb[tid]
             is_moved = tid in moved
@@ -241,6 +270,41 @@ def power_figure(duties: dict[str, Column], slot_min: int = 15, title: str = "Od
     fig.update_yaxes(title_text="výkon [kW]", rangemode="tozero")
     _time_axis(fig, t_lo * slot_min, (t_hi + 1) * slot_min)
     return _layout(fig, title, 320)
+
+
+def peak_comparison_figure(schedules: dict[str, dict[str, Column]], slot_min: int = 15):
+    """Grid-wide charging load for the R=0 and R>0 E4 optima."""
+    import plotly.graph_objects as go
+
+    profiles = {}
+    for label, duties in schedules.items():
+        load = {}
+        for col in duties.values():
+            for station in col.power_by_station.values():
+                for slot, kw in station.items():
+                    load[slot] = load.get(slot, 0.0) + kw
+        profiles[label] = load
+    slots = sorted({slot for load in profiles.values() for slot in load})
+    fig = go.Figure()
+    if not slots:
+        fig.add_annotation(text="Žiadne nabíjanie", showarrow=False)
+        return _layout(fig, "Výkon siete: R=0 oproti R>0", 320)
+    xs = list(range(slots[0], slots[-1] + 1))
+    for label, color, dash in (("R=0", ORANGE, "dash"), ("R>0", BLUE, "solid")):
+        load = profiles[label]
+        peak = max(load.values(), default=0.0)
+        fig.add_trace(go.Scatter(x=[(slot + 0.5) * slot_min for slot in xs],
+                                 y=[load.get(slot, 0.0) for slot in xs], mode="lines+markers",
+                                 name=f"{label} (špička {peak:.0f} kW)",
+                                 line={"color": color, "dash": dash, "width": 2},
+                                 marker={"size": 5},
+                                 hovertemplate=f"{label}: %{{y:.0f}} kW<extra></extra>"))
+    if set(schedules["R=0"]) == set(schedules["R>0"]):
+        fig.add_annotation(x=0.5, y=0.95, xref="paper", yref="paper", showarrow=False,
+                           text="Rovnaký prípustný rozvrh pre obe váhy R")
+    fig.update_yaxes(title_text="výkon siete [kW]", rangemode="tozero")
+    _time_axis(fig, xs[0] * slot_min, (xs[-1] + 1) * slot_min)
+    return _layout(fig, "Výkon siete: R=0 oproti R>0", 320)
 
 
 def schedule_kpis(duties: dict[str, Column], slot_min: int = 15) -> dict:
