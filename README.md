@@ -1,5 +1,19 @@
 # E-VSP: data and instances (work package A)
 
+## Column export safety (work package B)
+
+`scripts/build_columns.py` stops before export when replay or schedule validation
+fails. Replay checks the charging station, location, power, duration, energy,
+battery limits and depot departure/arrival. Aggregated stations must have identical
+connector locations and powers; heterogeneous stations require a connector-level model.
+
+Pairwise QUBO conflicts cannot represent a general multi-connector capacity limit.
+Export therefore conservatively rejects a selected pool whose combined charging
+intervals exceed a multi-connector station's capacity, even if some candidates are
+mutually exclusive. The LP/MILP still supports these capacity constraints. Reduce
+the pool or use `--no-depot-charging` to generate alternatives without depot charging.
+This check prevents unsafe export; it does not add a new QUBO capacity formulation.
+
 This PR prepares versioned input data for duty generation (B), QUBO construction
 (C), and quantum solvers (E). It does not generate battery-feasible duties or
 solve a schedule. `main.py` is an independent Qiskit Bell-state smoke test.
