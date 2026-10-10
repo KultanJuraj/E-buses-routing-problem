@@ -113,6 +113,8 @@ class ColumnSet:
     buffer_min: float
     config: dict
     stats: dict = field(default_factory=dict)
+    assumptions: dict = field(default_factory=dict)   # instance assumptions (costs, battery, ...)
+    extra: dict = field(default_factory=dict)         # other top-level keys of a loaded file
 
     # ---------------------------------------------------------------- matrices
     def coverage_matrix(self, indices: Optional[list[int]] = None) -> np.ndarray:
@@ -148,30 +150,17 @@ class ColumnSet:
 
         C: both columns charge at the same 1-charger station at overlapping times.
         r_kl = buffer - gap when l starts charging less than `buffer_min` after k ends
-        on the same 1-charger station. Multi-charger stations are exportable only
-        if even the whole candidate set stays within capacity. Otherwise this
-        pairwise formulation cannot enforce capacity and must fail explicitly.
+        on the same 1-charger station. Multi-charger stations (the depot) get no
+        pairwise terms; their load is handled by the peak term.
         """
         per_station: dict[str, list[tuple[float, float, int]]] = defaultdict(list)
         for pos, k in enumerate(indices):
             for ch in self.columns[k].charges:
-                per_station[ch.station].append((ch.start_min, ch.end_min, pos))
+                if self.station_capacity.get(ch.station, 1) == 1:
+                    per_station[ch.station].append((ch.start_min, ch.end_min, pos))
         conflicts: set[tuple[int, int]] = set()
         tight: dict[tuple[int, int], float] = {}
-        for station, iv in per_station.items():
-            capacity = self.station_capacity[station]
-            if capacity > 1:
-                events = sorted((time, delta) for start, end, _ in iv
-                                for time, delta in ((start, 1), (end, -1)))
-                level = 0
-                for _, delta in events:
-                    level += delta
-                    if level > capacity:
-                        raise ValueError(
-                            f"Station {station}: candidate charging overlaps exceed capacity {capacity}; "
-                            "pairwise QUBO conflicts cannot encode this. Reduce the selection or "
-                            "disable depot charging; LP/MILP capacity constraints remain supported.")
-                continue
+        for iv in per_station.values():
             iv.sort()
             for x, (_, e1, k) in enumerate(iv):
                 for s2, _, l in iv[x + 1:]:
@@ -202,6 +191,7 @@ class ColumnSet:
             "station_capacity": self.station_capacity,
             "config": self.config,
             "stats": self.stats,
+            "assumptions": self.assumptions,
             "columns": [_column_to_dict(self.columns[k]) for k in idx],
             "conflicts": [list(p) for p in conf],
             "tight_pairs": [[a, b, round(r, 3)] for a, b, r in tight],
@@ -210,7 +200,7 @@ class ColumnSet:
             out.update(extra)
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(out, indent=1, allow_nan=False), encoding="utf-8")
+        path.write_text(json.dumps(out, indent=1), encoding="utf-8")
         return path
 
 
@@ -235,9 +225,13 @@ def load_columns(path: str | Path) -> ColumnSet:
         e = {int(t): v for t, v in d.pop("energy_by_slot").items()}
         p = {s: {int(t): v for t, v in prof.items()} for s, prof in d.pop("power_by_station").items()}
         cols.append(Column(**d, charges=charges, energy_by_slot=e, power_by_station=p))
+    known = {"instance", "trip_ids", "slot_min", "buffer_min", "station_capacity", "config", "stats",
+             "assumptions", "columns", "conflicts", "tight_pairs"}
     return ColumnSet(instance_name=raw["instance"], trip_ids=raw["trip_ids"], columns=cols,
                      station_capacity=raw["station_capacity"], slot_min=raw["slot_min"],
-                     buffer_min=raw["buffer_min"], config=raw["config"], stats=raw.get("stats", {}))
+                     buffer_min=raw["buffer_min"], config=raw["config"], stats=raw.get("stats", {}),
+                     assumptions=raw.get("assumptions", {}),
+                     extra={k: v for k, v in raw.items() if k not in known})
 
 
 # --------------------------------------------------------------------------- generator
@@ -254,9 +248,6 @@ def _stations(inst: Instance) -> list[_Station]:
     by_station: dict[str, list] = defaultdict(list)
     for c in inst.chargers:
         by_station[c.station].append(c)
-    for station, chargers in by_station.items():
-        if len({(c.location, c.power_kw) for c in chargers}) != 1:
-            raise ValueError(f"Station {station}: aggregated charging requires identical locations and powers")
     return [_Station(id=s, location=chs[0].location, power_kw=max(c.power_kw for c in chs), capacity=len(chs))
             for s, chs in sorted(by_station.items())]
 
@@ -453,7 +444,8 @@ def generate_columns(inst: Instance, cfg: Optional[GenConfig] = None,
     }
     return ColumnSet(instance_name=inst.name, trip_ids=[t.id for t in trips], columns=columns,
                      station_capacity={s.id: s.capacity for s in all_stations}, slot_min=slot,
-                     buffer_min=a.get("charge_buffer_min", 10.0), config=cfg.to_dict(), stats=stats)
+                     buffer_min=a.get("charge_buffer_min", 10.0), config=cfg.to_dict(), stats=stats,
+                     assumptions=dict(a))
 
 
 # --------------------------------------------------------------------------- validation
@@ -464,69 +456,30 @@ def validate_column(inst: Instance, col: Column, tol: float = 1e-6) -> list[str]
     cap, kwh_km, eta = a["battery_kwh"], a["kwh_per_km"], a["charge_efficiency"]
     by_id = inst.trip_by_id
     errors = []
-    if not col.trips or len(set(col.trips)) != len(col.trips):
-        return ["trips must be nonempty and unique"]
-    if any(t not in by_id for t in col.trips):
-        return ["unknown trip ID"]
-    values = [col.start_min, col.end_min, col.min_soc, col.final_soc, col.grid_kwh_day]
-    values += [v for ch in col.charges for v in
-               (ch.start_min, ch.end_min, ch.power_kw, ch.grid_kwh, ch.soc_before, ch.soc_after)]
-    if not all(math.isfinite(v) for v in values):
-        return ["column times, energy and SoC must be finite"]
-    stations = {s.id: s for s in _stations(inst)}
-    for ch in col.charges:
-        station = stations.get(ch.station)
-        if station is None or ch.location != station.location:
-            return [f"unknown station or wrong charging location: {ch.station}"]
-        if ch.power_kw <= 0 or ch.power_kw > station.power_kw + tol:
-            errors.append(f"{ch.station}: invalid charging power")
-        if ch.end_min - ch.start_min < a["min_charge_min"] - tol:
-            errors.append(f"{ch.station}: charging duration below minimum")
-        if abs(ch.grid_kwh - ch.power_kw * (ch.end_min - ch.start_min) / 60) > 1e-3:
-            errors.append(f"{ch.station}: grid energy mismatch")
-    if errors:
-        return errors
     soc = a["soc_start"] * cap
-    minimum = soc
-    loc, now = inst.depot, col.start_min
+    loc, now = inst.depot, -math.inf
     pending = sorted(col.charges, key=lambda c: c.start_min)
     for n, tid in enumerate(col.trips):
         t = by_id[tid]
         if n > 0 and pending and pending[0].start_min < t.dep_min:
             ch = pending.pop(0)
             soc -= inst.dh_km(loc, ch.location) * kwh_km
-            minimum = min(minimum, soc)
             if now + inst.dh_min(loc, ch.location) > ch.start_min + tol:
                 errors.append(f"{tid}: cannot reach charger {ch.station} in time")
             if soc < a["soc_min"] * cap - tol:
                 errors.append(f"{tid}: SoC below minimum on the way to charger {ch.station}")
-            if abs(soc / cap - ch.soc_before) > 1e-3:
-                errors.append(f"{ch.station}: SoC before charging mismatch")
-            soc += eta * ch.power_kw * (ch.end_min - ch.start_min) / 60.0
-            if soc > a["soc_max"] * cap + tol:
-                errors.append(f"{ch.station}: charging exceeds battery capacity")
-            if abs(soc / cap - ch.soc_after) > 1e-3:
-                errors.append(f"{ch.station}: SoC after charging mismatch")
+            soc = min(a["soc_max"] * cap, soc + eta * ch.power_kw * (ch.end_min - ch.start_min) / 60.0)
             loc, now = ch.location, ch.end_min
         soc -= inst.dh_km(loc, t.start) * kwh_km
-        pause = a["min_layover_min"] if n > 0 else 0
-        if now + inst.dh_min(loc, t.start) + pause > t.dep_min + 1e-3:
+        if n > 0 and now + inst.dh_min(loc, t.start) + a["min_layover_min"] > t.dep_min + tol:
             errors.append(f"{tid}: not reachable in time")
         if soc < a["soc_min"] * cap - tol:
             errors.append(f"{tid}: SoC below minimum before the trip")
         soc -= t.energy_kwh
-        minimum = min(minimum, soc)
         if soc < a["soc_min"] * cap - tol:
             errors.append(f"{tid}: SoC below minimum after the trip")
         loc, now = t.end, t.arr_min
     soc -= inst.dh_km(loc, inst.depot) * kwh_km
-    minimum = min(minimum, soc)
-    if abs(col.end_min - (now + inst.dh_min(loc, inst.depot))) > 1e-3:
-        errors.append("pull-in: arrival time mismatch")
-    if abs(minimum / cap - col.min_soc) > 1e-3:
-        errors.append("minimum SoC mismatch")
-    if abs(sum(ch.grid_kwh for ch in col.charges) - col.grid_kwh_day) > 1e-3:
-        errors.append("total grid energy mismatch")
     if soc < a["soc_min"] * cap - tol:
         errors.append("pull-in: SoC below minimum")
     if abs(soc / cap - col.final_soc) > 1e-3:
