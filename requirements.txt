@@ -3,5 +3,7 @@ pandas==2.3.3
 jsonschema==4.26.0
 scipy==1.17.0
 pytest==9.0.3
-# Only needed for the independent Bell-state smoke test in main.py.
 qiskit==2.3.0
+# Optional conversions: QUBO.to_quadratic_program() / QUBO.to_bqm()
+qiskit-optimization==0.7.0
+dimod==0.12.22

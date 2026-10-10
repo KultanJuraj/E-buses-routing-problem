@@ -113,6 +113,8 @@ class ColumnSet:
     buffer_min: float
     config: dict
     stats: dict = field(default_factory=dict)
+    assumptions: dict = field(default_factory=dict)   # instance assumptions (costs, battery, ...)
+    extra: dict = field(default_factory=dict)         # other top-level keys of a loaded file
 
     # ---------------------------------------------------------------- matrices
     def coverage_matrix(self, indices: Optional[list[int]] = None) -> np.ndarray:
@@ -202,6 +204,7 @@ class ColumnSet:
             "station_capacity": self.station_capacity,
             "config": self.config,
             "stats": self.stats,
+            "assumptions": self.assumptions,
             "columns": [_column_to_dict(self.columns[k]) for k in idx],
             "conflicts": [list(p) for p in conf],
             "tight_pairs": [[a, b, round(r, 3)] for a, b, r in tight],
@@ -235,9 +238,13 @@ def load_columns(path: str | Path) -> ColumnSet:
         e = {int(t): v for t, v in d.pop("energy_by_slot").items()}
         p = {s: {int(t): v for t, v in prof.items()} for s, prof in d.pop("power_by_station").items()}
         cols.append(Column(**d, charges=charges, energy_by_slot=e, power_by_station=p))
+    known = {"instance", "trip_ids", "slot_min", "buffer_min", "station_capacity", "config", "stats",
+             "assumptions", "columns", "conflicts", "tight_pairs"}
     return ColumnSet(instance_name=raw["instance"], trip_ids=raw["trip_ids"], columns=cols,
                      station_capacity=raw["station_capacity"], slot_min=raw["slot_min"],
-                     buffer_min=raw["buffer_min"], config=raw["config"], stats=raw.get("stats", {}))
+                     buffer_min=raw["buffer_min"], config=raw["config"], stats=raw.get("stats", {}),
+                     assumptions=raw.get("assumptions", {}),
+                     extra={k: v for k, v in raw.items() if k not in known})
 
 
 # --------------------------------------------------------------------------- generator
@@ -453,7 +460,8 @@ def generate_columns(inst: Instance, cfg: Optional[GenConfig] = None,
     }
     return ColumnSet(instance_name=inst.name, trip_ids=[t.id for t in trips], columns=columns,
                      station_capacity={s.id: s.capacity for s in all_stations}, slot_min=slot,
-                     buffer_min=a.get("charge_buffer_min", 10.0), config=cfg.to_dict(), stats=stats)
+                     buffer_min=a.get("charge_buffer_min", 10.0), config=cfg.to_dict(), stats=stats,
+                     assumptions=dict(a))
 
 
 # --------------------------------------------------------------------------- validation
