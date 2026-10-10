@@ -5,12 +5,14 @@ the "Účelové funkcie E-VSP" document:
 
     H(y) = sum_k c_k y_k                                   costs (vehicle, deadhead, energy)
          + P sum_i (sum_k a_ik y_k - 1)^2                  every trip exactly once
-         + Q sum_{(k,l) in C} y_k y_l                      one bus per 1-charger station at a time
-         + R sum_s sum_t (sum_k p_kst y_k)^2               peak power (per station or grid-wide)
+         + Q sum_{(k, l) in C} y_k y_l                      one bus per 1-charger station at a time
+         + R sum_t (sum_k p_kt y_k)^2                       grid-wide peak power (default)
          + w_rob sum_{k != l} r_kl y_k y_l                 back-to-back charging on one charger
          + M (sum_k y_k - V)^2                             exact fleet size (variant E3)
 
-with c_k = w_veh + w_dh D_k + w_en * energy_cost_k. After y_k^2 = y_k it is
+with c_k = w_veh + w_dh D_k + w_en * E_k. E_k can be tariff cost (the default,
+to preserve parity with the existing MILP) or purchased grid kWh. Costs can be
+normalized to [0, 1] before penalties are added. After y_k^2 = y_k it is
 stored as  E(y) = offset + sum_k lin_k y_k + sum_{k<l} quad_kl y_k y_l.
 
 Variants (see `variant_weights`):
@@ -31,11 +33,14 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
+
+import dimod
+from qiskit_optimization import QuadraticProgram
 
 from .columns import ColumnSet
 
@@ -56,9 +61,29 @@ class Weights:
     M: float = 0.0                   # fleet-size penalty (E3)
     V: Optional[int] = None          # fleet size for E3
     peak_unit_kw: float = 100.0      # power is measured in units of this many kW
-    peak_scope: str = "station"      # "station": sum_s sum_t (.)^2 | "total": sum_t (sum_s .)^2
+    peak_scope: str = "total"        # grid-wide sum_t (sum_s .)^2, or per-station sum_s sum_t (.)^2
+    energy_basis: str = "tariff"     # "tariff" preserves MILP parity; "kwh" prices grid kWh directly
+    normalize_costs: bool = False    # divide the cost component by max_k(c_k), penalties follow suit
     penalty_factor: float = 2.0      # P = Q = factor * max_k(largest cost a column can add)
     variant: str = "custom"
+
+    def __post_init__(self):
+        if self.peak_scope not in {"station", "total"}:
+            raise ValueError("peak_scope must be 'station' or 'total'")
+        if self.energy_basis not in {"tariff", "kwh"}:
+            raise ValueError("energy_basis must be 'tariff' or 'kwh'")
+        for key in ("w_veh", "w_dh", "w_en", "R", "w_rob", "M", "peak_unit_kw", "penalty_factor"):
+            value = getattr(self, key)
+            if not np.isfinite(value):
+                raise ValueError(f"{key} must be finite")
+        if min(self.w_veh, self.w_dh, self.w_en, self.R, self.w_rob) < 0:
+            raise ValueError("cost, peak, and robustness weights must be nonnegative")
+        if self.peak_unit_kw <= 0 or self.penalty_factor <= 0:
+            raise ValueError("peak_unit_kw and penalty_factor must be positive")
+        if self.P is not None and (not np.isfinite(self.P) or self.P < 0):
+            raise ValueError("P must be finite and nonnegative")
+        if self.Q is not None and (not np.isfinite(self.Q) or self.Q < 0):
+            raise ValueError("Q must be finite and nonnegative")
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -184,7 +209,7 @@ class QUBO:
 
     def to_quadratic_program(self):
         """qiskit-optimization QuadraticProgram (minimize), one binary per column."""
-        from qiskit_optimization import QuadraticProgram
+
 
         qp = QuadraticProgram(name=self.meta.get("name", "evsp"))
         for name in self.names:
@@ -196,7 +221,7 @@ class QUBO:
 
     def to_bqm(self):
         """dimod BinaryQuadraticModel (for simulated annealing / D-Wave)."""
-        import dimod
+
 
         return dimod.BinaryQuadraticModel(
             {k: float(v) for k, v in enumerate(self.linear)},
@@ -268,8 +293,16 @@ def build_qubo(cs: ColumnSet, weights: Optional[Weights] = None, indices: Option
     n = len(idx)
     cols = [cs.columns[k] for k in idx]
 
-    # ---- linear costs c_k
-    costs = np.array([w.w_veh + w.w_dh * c.deadhead_km + w.w_en * c.energy_cost for c in cols], dtype=float)
+    # ---- linear costs c_k; retain raw costs for reporting, use normalized values in H if requested
+    if w.energy_basis not in {"tariff", "kwh"}:
+        raise ValueError("energy_basis must be 'tariff' or 'kwh'")
+    raw_costs = np.array([
+        w.w_veh + w.w_dh * c.deadhead_km
+        + w.w_en * (c.energy_cost if w.energy_basis == "tariff" else c.grid_kwh_day + c.refill_kwh)
+        for c in cols
+    ], dtype=float)
+    cost_scale = max(float(np.max(np.abs(raw_costs), initial=0.0)), 1.0) if w.normalize_costs else 1.0
+    costs = raw_costs / cost_scale
 
     # ---- power tensor in peak units
     power, stations, n_slots = cs.power_tensor(idx)
@@ -346,11 +379,47 @@ def build_qubo(cs: ColumnSet, weights: Optional[Weights] = None, indices: Option
 
     meta = {"name": name or cs.instance_name, "variant": w.variant, "P": P, "Q": Q, "M": M,
             "n_trips": len(cs.trip_ids), "n_conflicts": len(conflicts), "n_tight": len(tight),
-            "stations": stations, "n_slots": n_slots, "scale": 1.0}
+            "stations": stations, "n_slots": n_slots, "scale": 1.0, "cost_scale": cost_scale,
+            "energy_basis": w.energy_basis}
     return QUBO(linear=lin, quadratic={kl: v for kl, v in quad.items() if abs(v) > 1e-12}, offset=offset,
                 names=[c.id for c in cols], weights=w, meta=meta, _cover=cover, _conflicts=conflicts,
-                _tight=tight, _costs=costs, _power=power_terms, _stations=stations if w.peak_scope == "station"
+                _tight=tight, _costs=raw_costs, _power=power_terms, _stations=stations if w.peak_scope == "station"
                 else ["TOTAL"], _trip_ids=list(cs.trip_ids))
+
+
+def tune_weights(cs: ColumnSet, weights: Weights, indices: list[int],
+                 penalty_factors=(1.5, 2.0, 3.0), peak_weights=(0.0, 0.25, 0.5, 1.0, 2.0),
+                 max_n: int = 20) -> tuple[Weights, list[dict]]:
+    """Grid-search P/Q and R by exact ground-state checks on a small selected pool.
+
+    Returns the feasible setting with the lowest grid peak (then cost), plus a
+    record of every tested setting. This is an exploratory tuning aid, not a
+    claim that this finite grid contains globally optimal weights.
+    """
+    if len(indices) > max_n:
+        raise ValueError(f"weight tuning is limited to {max_n} variables; got {len(indices)}")
+    trials = []
+    feasible = []
+    for peak in peak_weights:
+        for factor in penalty_factors:
+            candidate = replace(weights, R=float(peak), P=None, Q=None,
+                                penalty_factor=float(factor))
+            q = build_qubo(cs, candidate, indices=indices)
+            x, energy = brute_force(q, max_n=max_n)
+            report = q.evaluate(x)
+            row = {"R": float(peak), "penalty_factor": float(factor),
+                   "P": q.meta["P"], "Q": q.meta["Q"], "energy": energy,
+                   "feasible": report["feasible"], "peak_kw_total": report["peak_kw_total"],
+                   "cost": report["cost"], "n_vehicles": report["n_vehicles"]}
+            trials.append(row)
+            if report["feasible"]:
+                feasible.append((row, candidate))
+    if not feasible:
+        raise ValueError("no feasible ground state found in the weight grid; expand penalty_factors")
+    best_row, best_weights = min(feasible, key=lambda item: (item[0]["peak_kw_total"], item[0]["cost"]))
+    for row in trials:
+        row["selected"] = row is best_row
+    return best_weights, trials
 
 
 # --------------------------------------------------------------------------- exact solver
