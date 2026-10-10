@@ -1,0 +1,462 @@
+{
+ "event": {
+  "kind": "bus",
+  "at_min": 360,
+  "bus": "k4",
+  "station": null,
+  "until_min": null
+ },
+ "trips": [
+  "39170970",
+  "39170897",
+  "39171007",
+  "39170851",
+  "39170830"
+ ],
+ "n_qubits": 20,
+ "subspace_size": 480,
+ "options": [
+  {
+   "trip": "39170970",
+   "kind": "cancel",
+   "target": null,
+   "cost": 1500.0
+  },
+  {
+   "trip": "39170897",
+   "kind": "reserve",
+   "target": "R1",
+   "cost": 566.0120079535512
+  },
+  {
+   "trip": "39170897",
+   "kind": "reserve",
+   "target": "R2",
+   "cost": 566.0120079535512
+  },
+  {
+   "trip": "39170897",
+   "kind": "reserve",
+   "target": "R3",
+   "cost": 566.0120079535512
+  },
+  {
+   "trip": "39170897",
+   "kind": "cancel",
+   "target": null,
+   "cost": 1500.0
+  },
+  {
+   "trip": "39171007",
+   "kind": "reserve",
+   "target": "R1",
+   "cost": 564.4429925501737
+  },
+  {
+   "trip": "39171007",
+   "kind": "reserve",
+   "target": "R2",
+   "cost": 564.4429925501737
+  },
+  {
+   "trip": "39171007",
+   "kind": "reserve",
+   "target": "R3",
+   "cost": 564.4429925501737
+  },
+  {
+   "trip": "39171007",
+   "kind": "cancel",
+   "target": null,
+   "cost": 1500.0
+  },
+  {
+   "trip": "39170851",
+   "kind": "bus",
+   "target": "k324",
+   "cost": 20.864819189267905
+  },
+  {
+   "trip": "39170851",
+   "kind": "reserve",
+   "target": "R1",
+   "cost": 565.3698968424401
+  },
+  {
+   "trip": "39170851",
+   "kind": "reserve",
+   "target": "R2",
+   "cost": 565.3698968424401
+  },
+  {
+   "trip": "39170851",
+   "kind": "reserve",
+   "target": "R3",
+   "cost": 565.3698968424401
+  },
+  {
+   "trip": "39170851",
+   "kind": "cancel",
+   "target": null,
+   "cost": 1500.0
+  },
+  {
+   "trip": "39170830",
+   "kind": "bus",
+   "target": "k324",
+   "cost": 79.46299255017368
+  },
+  {
+   "trip": "39170830",
+   "kind": "bus",
+   "target": "k497",
+   "cost": 83.83278623505396
+  },
+  {
+   "trip": "39170830",
+   "kind": "reserve",
+   "target": "R1",
+   "cost": 564.4429925501737
+  },
+  {
+   "trip": "39170830",
+   "kind": "reserve",
+   "target": "R2",
+   "cost": 564.4429925501737
+  },
+  {
+   "trip": "39170830",
+   "kind": "reserve",
+   "target": "R3",
+   "cost": 564.4429925501737
+  },
+  {
+   "trip": "39170830",
+   "kind": "cancel",
+   "target": null,
+   "cost": 1500.0
+  }
+ ],
+ "conflicts": [],
+ "settings": {
+  "columns": "C:\\Users\\kulta\\PycharmProjects\\E-buses-routing-problem\\columns\\kcm_small_b20_bat200.json",
+  "instance": "C:\\Users\\kulta\\PycharmProjects\\E-buses-routing-problem\\instances\\kcm_small.json",
+  "bus": "k4",
+  "at": "06:00",
+  "charger": null,
+  "start": null,
+  "end": null,
+  "reserves": 3,
+  "max_options": 3,
+  "one_trip_per_bus": false,
+  "p_max": 3,
+  "alpha": 0.2,
+  "maxiter": 150,
+  "sa_reads": 200,
+  "no_penalty_qaoa": false,
+  "qiskit": false,
+  "noise": null,
+  "shots": 4000,
+  "best_of": 1000,
+  "seed": 0,
+  "out": "C:\\Users\\kulta\\PycharmProjects\\E-buses-routing-problem\\results"
+ },
+ "optimum": {
+  "pairwise_model_energy": 2730.7828122431665,
+  "extra_cost": 2104.015263686736,
+  "assignment": {
+   "39170970": "cancel",
+   "39170897": "R1",
+   "39171007": "R1",
+   "39170851": "k324",
+   "39170830": "k324"
+  },
+  "jointly_feasible": true,
+  "capacity_ok": true,
+  "used_cancel_all_fallback": false,
+  "valid_state_rank": 0,
+  "problems": []
+ },
+ "simulated_annealing": {
+  "p_optimal": 0.105,
+  "best_energy": 2730.7828122431674,
+  "reads": 200
+ },
+ "penalty_qaoa": {
+  "n_qubits": 20,
+  "alpha": 0.2,
+  "optimum_energy": 2730.7828122431674,
+  "uniform_p_optimal": 8.58306884765625e-06,
+  "uniform_p_feasible": 0.000457763671875,
+  "layers": [
+   {
+    "p": 1,
+    "gammas": [
+     2.9193110455672833
+    ],
+    "betas": [
+     2.7056673176001835
+    ],
+    "objective": -1.845553155517974,
+    "expected_energy": 16857.568603316988,
+    "approx_ratio": 0.9257400237801937,
+    "p_optimal": 0.0016850312133353657,
+    "p_feasible": 0.07887035868967512,
+    "amplification": 196.32036550603826,
+    "shots_for_optimum_95": 1777.0,
+    "evaluations": 499,
+    "seconds": 193.88335514068604,
+    "sampled": {
+     "shots": 4000,
+     "frac_feasible": 0.082,
+     "frac_optimal": 0.00075,
+     "best_feasible_energy": 2730.7828122431674,
+     "found_optimum": true,
+     "best_after_repair": 2730.7828122431674,
+     "optimum_after_repair": true,
+     "repaired_strings": 20,
+     "most_frequent_energy": 15000.0,
+     "distinct_states": 3459
+    },
+    "optimizer": "cobyla"
+   },
+   {
+    "p": 2,
+    "gammas": [
+     2.579800785725666,
+     2.9973323597638153
+    ],
+    "betas": [
+     2.8368779909555513,
+     2.98838615950743
+    ],
+    "objective": -1.8707027847247397,
+    "expected_energy": 18815.487452647572,
+    "approx_ratio": 0.9154478731564143,
+    "p_optimal": 0.0027093943741003084,
+    "p_feasible": 0.12038198316740116,
+    "amplification": 315.66732391295614,
+    "shots_for_optimum_95": 1105.0,
+    "evaluations": 301,
+    "seconds": 211.56997871398926,
+    "sampled": {
+     "shots": 4000,
+     "frac_feasible": 0.1235,
+     "frac_optimal": 0.00375,
+     "best_feasible_energy": 2730.7828122431674,
+     "found_optimum": true,
+     "best_after_repair": 2730.7828122431674,
+     "optimum_after_repair": true,
+     "repaired_strings": 20,
+     "most_frequent_energy": 9564.442992550174,
+     "distinct_states": 3274
+    },
+    "optimizer": "cobyla"
+   },
+   {
+    "p": 3,
+    "gammas": [
+     2.4818996530100326,
+     2.766322448567332,
+     3.197446940168726
+    ],
+    "betas": [
+     2.787010777275919,
+     3.1220774794664594,
+     3.0155039695545027
+    ],
+    "objective": -1.8835026356379385,
+    "expected_energy": 14022.827649745566,
+    "approx_ratio": 0.9406413466228276,
+    "p_optimal": 0.003595655662495376,
+    "p_feasible": 0.1512880950938119,
+    "amplification": 418.9242479951946,
+    "shots_for_optimum_95": 832.0,
+    "evaluations": 301,
+    "seconds": 293.6418182849884,
+    "sampled": {
+     "shots": 4000,
+     "frac_feasible": 0.1555,
+     "frac_optimal": 0.00275,
+     "best_feasible_energy": 2730.7828122431674,
+     "found_optimum": true,
+     "best_after_repair": 2730.7828122431674,
+     "optimum_after_repair": true,
+     "repaired_strings": 20,
+     "most_frequent_energy": 8630.455000503725,
+     "distinct_states": 3014
+    },
+    "optimizer": "cobyla"
+   }
+  ],
+  "hamiltonian_scale": {
+   "mean": 47732.482133831756,
+   "std": 23023.120479653968
+  }
+ },
+ "xy_qaoa": {
+  "n_qubits": 20,
+  "subspace_size": 480,
+  "optimum_energy": 2730.7828122431665,
+  "n_optimal": 9,
+  "alpha": 0.2,
+  "layers": [
+   {
+    "p": 1,
+    "gammas": [
+     0.6195436737971353
+    ],
+    "betas": [
+     2.659073184007419
+    ],
+    "objective": -1.589867766568395,
+    "expected_energy": 3564.0339784164703,
+    "p_optimal": 0.10763986704359634,
+    "p_feasible": 1.0,
+    "amplification_subspace": 5.740792908991804,
+    "amplification_full": 12540.95346945623,
+    "shots_for_optimum_95": 27,
+    "evaluations": 181,
+    "seconds": 0.1552422046661377
+   },
+   {
+    "p": 2,
+    "gammas": [
+     0.8410039605682602,
+     -0.1838513252888756
+    ],
+    "betas": [
+     2.7296418002154557,
+     -0.28629744988085915
+    ],
+    "objective": -1.7779289709365358,
+    "expected_energy": 3259.7877251808013,
+    "p_optimal": 0.1757478984874061,
+    "p_feasible": 0.9999999999999999,
+    "amplification_subspace": 9.37322125266166,
+    "amplification_full": 20476.114267147816,
+    "shots_for_optimum_95": 16,
+    "evaluations": 301,
+    "seconds": 0.39412999153137207
+   },
+   {
+    "p": 3,
+    "gammas": [
+     0.8386185517795302,
+     0.3383526624267226,
+     -0.020485509877884764
+    ],
+    "betas": [
+     2.5232765293938595,
+     1.7888317600289552,
+     -0.47489279004429025
+    ],
+    "objective": -1.7785292758369147,
+    "expected_energy": 3313.2543095509873,
+    "p_optimal": 0.2094243102004914,
+    "p_feasible": 1.0,
+    "amplification_subspace": 11.169296544026208,
+    "amplification_full": 24399.700610310054,
+    "shots_for_optimum_95": 13,
+    "evaluations": 212,
+    "seconds": 0.3152940273284912
+   }
+  ],
+  "hamiltonian_scale": {
+   "mean": 4300.673611727069,
+   "std": 882.6904458714444
+  }
+ },
+ "circuits": {
+  "xy": [
+   {
+    "coupling": "all",
+    "qubits": 20,
+    "physical_qubits": 20,
+    "depth": 168,
+    "cx": 159,
+    "ops": {
+     "rz": 491,
+     "sx": 402,
+     "cx": 159,
+     "x": 5
+    }
+   },
+   {
+    "coupling": "heavy-hex",
+    "qubits": 20,
+    "physical_qubits": 57,
+    "depth": 225,
+    "cx": 285,
+    "ops": {
+     "rz": 567,
+     "sx": 402,
+     "cx": 285,
+     "x": 5
+    }
+   }
+  ],
+  "penalty": [
+   {
+    "coupling": "all",
+    "qubits": 20,
+    "physical_qubits": 20,
+    "depth": 81,
+    "cx": 222,
+    "ops": {
+     "rz": 323,
+     "cx": 222,
+     "sx": 135
+    }
+   },
+   {
+    "coupling": "heavy-hex",
+    "qubits": 20,
+    "physical_qubits": 57,
+    "depth": 271,
+    "cx": 440,
+    "ops": {
+     "cx": 440,
+     "rz": 323,
+     "sx": 135
+    }
+   }
+  ]
+ },
+ "summary": [
+  {
+   "method": "simulated annealing",
+   "p_optimal": 0.105,
+   "p_feasible": null,
+   "p": null,
+   "best_energy": 2730.7828122431674
+  },
+  {
+   "method": "QAOA, X mixer + penalties",
+   "p_optimal": 0.003595655662495376,
+   "p_feasible": 0.1512880950938119,
+   "p": 3,
+   "best_energy": 2730.7828122431674
+  },
+  {
+   "method": "QAOA, XY mixer",
+   "p_optimal": 0.2094243102004914,
+   "p_feasible": 1.0,
+   "p": 3,
+   "best_energy": 2730.7828122431665
+  }
+ ],
+ "xy_most_likely": {
+  "assignment": {
+   "39170970": "cancel",
+   "39170897": "R1",
+   "39171007": "R1",
+   "39170851": "k324",
+   "39170830": "k497"
+  },
+  "extra_cost": 2180.930005726557,
+  "optimal": false,
+  "sampled_state_optimal": false,
+  "used_cancel_all_fallback": false
+ }
+}

@@ -52,6 +52,46 @@ This PR prepares versioned input data for duty generation (B), QUBO construction
 (C), and quantum solvers (E). It does not generate battery-feasible duties or
 solve a schedule. `main.py` is an independent Qiskit Bell-state smoke test.
 
+## Visualization and demo (work package G)
+
+```sh
+streamlit run app/demo.py                     # interactive demo in the browser
+python scripts/make_figures.py                # figures/*.html for the pitch
+python scripts/make_figures.py --bus k585 --at 07:00 --png
+python scripts/make_figures.py --charger S3 --from 07:00 --to 09:00
+```
+
+The demo loads the 5-bus optimum of `columns/kcm_small_b20_bat200.json` on
+`instances/kcm_small.json`:
+
+- **Rozvrh**: Gantt chart (trips, deadhead transfers, charging with station),
+  battery SoC of every bus with the minimum-SoC line, grid power per 15 min
+  stacked by station, an exact E4 grid-power comparison for R=0 and R=1,
+  and a duty table. The included 20-column pool has only one feasible schedule,
+  so both R curves coincide on this instance.
+- **Výpadok**: choose a failed bus and time (or a charger and outage window) and
+  press *Pokaz autobus*. `evsp.demo.solve_disruption` builds the repair problem
+  from package F, finds the exact optimum, and runs simulated annealing,
+  XY-mixer QAOA and penalty QAOA with the X mixer. The page shows the
+  before/after schedules (moved trips orange, cancelled trips red with hatching
+  and a label), the cost change, P(optimum) and P(feasible) per method, shots for
+  95 % confidence and the XY circuit size (all-to-all and heavy-hex).
+- **Škálovanie**: penalty QAOA vs SA vs random guessing from
+  `results/*_scaling.json` (`scripts/run_qaoa.py --scaling 8,10,12,16`).
+
+Penalty QAOA uses a 2^n statevector, so it is run live only up to 16 qubits.
+Larger events use a matching `results/repair_<event>.json` from
+`scripts/run_repair.py`. The repository includes the result for bus `k4` at
+06:00, which has 20 qubits and takes about 6 minutes. The live demo refuses
+events with more than 100 000 one-hot states. For example, S3 out of service
+06:00–08:00 has 60 qubits and 21 million states. Lower the number of reserves or
+options per trip, or use `scripts/run_repair.py`.
+
+PNG export needs `kaleido` and a Chrome or Chromium binary. If Chrome is not on
+PATH, set `BROWSER_PATH`. Without a browser, the script writes HTML only.
+Colors follow a palette checked for color-vision deficiency. Every status, such as
+a failure, move, cancellation or outage, also has a text label.
+
 ## Setup and checks
 
 Use Python 3.11 or newer; the pinned dependencies were tested with Python 3.14.3.

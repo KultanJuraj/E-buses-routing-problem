@@ -1,4 +1,6 @@
 from pathlib import Path
+import json
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -270,3 +272,32 @@ def test_stranded_bus_keeps_the_trips_it_already_drove(setup):
     tb = inst.trip_by_id
     assert all(tb[t].dep_min >= ev.at_min for t in rp.trips)
     assert set(rp.trips) >= {t for t in sched.duties["k4"].trips if tb[t].dep_min >= ev.at_min}
+
+
+def test_precomputed_result_checks_the_actual_problem(setup, demo):
+    from evsp.demo import _precomputed_penalty
+
+    _, sched = setup
+    event = Disruption.bus_failure(sched, "k4", 6 * 60)
+    result = ROOT / "results" / "repair_bus_k4_0600.json"
+    raw = json.loads(result.read_text(encoding="utf-8"))
+    assert _precomputed_penalty(event, demo, result)[0]
+    raw["conflicts"] = [[9, 14]]
+    with patch.object(Path, "read_text", return_value=json.dumps(raw)):
+        assert _precomputed_penalty(event, demo, result)[0] is None
+
+
+def test_soc_includes_charging_after_the_last_trip(setup, demo):
+    from evsp.viz import soc_timeline
+    from evsp.xy_qaoa import best_valid_state
+
+    inst, _ = setup
+    plan = best_valid_state(inst, demo, OneHotSpace.from_problem(demo))[1]
+    charged_home = [c for c in plan.duties.values()
+                    if any(ch.start_min >= inst.trip_by_id[c.trips[-1]].arr_min for ch in c.charges)]
+    assert charged_home
+    for col in charged_home:
+        times, soc = soc_timeline(inst, col)
+        assert times == sorted(times)
+        assert soc[-1] == pytest.approx(col.final_soc)
+        assert min(soc) == pytest.approx(col.min_soc)
