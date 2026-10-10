@@ -9,6 +9,8 @@ Usage (from the project root):
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -39,6 +41,7 @@ def main() -> None:
     p.add_argument("--depot", type=str, default=None, help="lat,lon of the depot (default: synthetic centroid)")
     p.add_argument("--max-site-km", type=float, default=15.0,
                    help="drop charging sites farther than this from every terminal of the instance")
+    p.add_argument("--source-revision", help="GTFS source repository commit, if known; input SHA256 hashes are always recorded")
     args = p.parse_args()
 
     gtfs_dir = args.data_dir / "gtfs"
@@ -50,18 +53,32 @@ def main() -> None:
     trips = load_trip_table(gtfs_dir)
     sites = load_sites(args.data_dir / "so_king_cty_sites.csv")
     assumptions = Assumptions()
+    input_files = [gtfs_dir / filename for filename in
+                   ("routes.txt", "trips.txt", "stop_times.txt", "shapes.txt")]
+    input_files.append(args.data_dir / "so_king_cty_sites.csv")
+    hashes = {}
+    for source in input_files:
+        with source.open("rb") as stream:
+            hashes[str(source.relative_to(args.data_dir)).replace("\\", "/")] = hashlib.file_digest(stream, "sha256").hexdigest()
+    reports = []
 
     for name in args.preset:
         sel = select_trips(trips, **PRESETS[name])
         inst = build_instance(sel, sites, assumptions, name=f"kcm_{name}", depot=depot,
                               max_site_km=args.max_site_km)
+        inst["meta"].update(source_revision=args.source_revision, input_sha256=hashes,
+                            selection=PRESETS[name], max_site_km=args.max_site_km)
         path = save_instance(inst, args.out / f"kcm_{name}.json")
         loaded = load_instance(path)
         check = loaded.check_baseline()
+        reports.append(check)
         print(f"  {loaded.summary()}")
         print(f"    arcs |A| = {len(loaded.arcs(max_gap=180))} (max_gap 180 min); "
               f"real-block pairs feasible: {check['pairs_ok']}/{check['pairs_ok'] + check['pairs_fail']}"
               f"  -> {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
+    report_path = args.out / "baseline_validation.json"
+    report_path.write_text(json.dumps({"instances": reports}, indent=2, allow_nan=False), encoding="utf-8")
+    print(f"Baseline diagnostics: {report_path}")
 
 
 if __name__ == "__main__":

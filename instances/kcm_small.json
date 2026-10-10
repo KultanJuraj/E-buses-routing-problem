@@ -1,6 +1,7 @@
 {
+ "schema_version": "1.0",
  "name": "kcm_small",
- "meta": {
+ "meta": {"source_revision": null,
   "source": "King County Metro GTFS (Feb 2020) via github.com/dan-mccabe/beb-chargers-pactrans",
   "service_id": "86021",
   "generated_utc": "2026-10-10T08:36:31+00:00",
@@ -19,7 +20,7 @@
    "Depot location is synthetic (centroid of terminals)."
   ]
  },
- "assumptions": {
+ "assumptions": {"peak_scope": "global",
   "battery_kwh": 419.40000000000003,
   "kwh_per_km": 1.8641135767120018,
   "soc_min": 0.1,
@@ -133,103 +134,103 @@
    "id": "DEPOT-C1",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C2",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C3",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C4",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C5",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C6",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C7",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C8",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C9",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "DEPOT-C10",
    "location": "DEPOT",
    "station": "DEPOT",
-   "power_kw": 150.0
+   "availability": "assumed", "power_kw": 150.0
   },
   {
    "id": "S1-C1",
    "location": "S1",
    "station": "S1",
-   "power_kw": 300.0
+   "availability": "assumed", "power_kw": 300.0
   },
   {
    "id": "S2-C1",
    "location": "S2",
    "station": "S2",
-   "power_kw": 300.0
+   "availability": "assumed", "power_kw": 300.0
   },
   {
    "id": "S3-C1",
    "location": "S3",
    "station": "S3",
-   "power_kw": 300.0
+   "availability": "assumed", "power_kw": 300.0
   },
   {
    "id": "S4-C1",
    "location": "S4",
    "station": "S4",
-   "power_kw": 300.0
+   "availability": "assumed", "power_kw": 300.0
   },
   {
    "id": "S5-C1",
    "location": "S5",
    "station": "S5",
-   "power_kw": 300.0
+   "availability": "assumed", "power_kw": 300.0
   },
   {
    "id": "S6-C1",
    "location": "S6",
    "station": "S6",
-   "power_kw": 300.0
+   "availability": "assumed", "power_kw": 300.0
   },
   {
    "id": "S7-C1",
    "location": "S7",
    "station": "S7",
-   "power_kw": 300.0
+   "availability": "assumed", "power_kw": 300.0
   }
  ],
  "trips": [
