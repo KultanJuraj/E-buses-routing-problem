@@ -52,6 +52,59 @@ This PR prepares versioned input data for duty generation (B), QUBO construction
 (C), and quantum solvers (E). It does not generate battery-feasible duties or
 solve a schedule. `main.py` is an independent Qiskit Bell-state smoke test.
 
+## Classical baselines (work package D)
+
+```sh
+python scripts/run_baselines.py                  # diesel + electric + repair, writes results/baselines.json
+python scripts/run_baselines.py --part diesel --instances large
+python scripts/run_baselines.py --part electric --battery instance 200
+python scripts/run_baselines.py --part repair
+```
+
+`evsp/baselines.py` contains the classical reference methods:
+
+- **Diesel scenarios S1–S3 of the assignment** (no battery). These are polynomial and
+  are solved as one minimum-cost flow model over the trip connection graph.
+  - S1 minimises buses.
+  - S2 minimises buses plus deadhead km with the instance weights (500 per bus, 1.5 per km).
+  - S3 minimises deadhead km with at most `v_max` buses and returns a trade-off curve.
+
+  The LP constraint matrix is totally unimodular, and `solve_flow` checks that the
+  HiGHS solution is integral. S1 is cross-checked by Hopcroft–Karp bipartite
+  matching (minimum path cover = trips − maximum matching).
+- **Real GTFS blocks** are measured with the same deadhead estimates. They are not a
+  fair optimum to beat: real blocks also serve routes outside the instance, and real
+  operations have constraints (drivers, garages) that are not modelled here.
+- **Electric baselines:**
+  - `battery_check` replays the diesel optimum with a battery.
+  - `greedy_electric` is a first-fit dispatcher: cheapest feasible insertion, greedy
+    charging, and charger capacity respected. Its duties are valid columns of package B.
+  - For tiny and small, the exact reference is the MILP over all enumerated duties.
+    For larger instances, the diesel S1 fleet is a lower bound.
+- **Repair baselines:**
+  - `greedy_repair` gives each affected trip its cheapest option that still replays,
+    in time order.
+  - `exact_repair` replays every one-hot assignment, so it counts reserve activation
+    once and finds the true-cost optimum.
+
+Results on the bundled data (battery 200 kWh for the electric part):
+
+| | tiny | small | medium | large |
+|---|---:|---:|---:|---:|
+| S1 / S2 buses (flow) | 2 | 5 | 12 | 118 |
+| S2 deadhead km | 71 | 176 | 454 | 5107 |
+| real GTFS blocks | 2 | 5 | 32 | 204 |
+| diesel optimum still battery-feasible | 0/2 | 3/5 | 0/12 | – |
+| greedy electric buses / exact MILP buses | 4 / 3 | 7 / 5 | 21 / ≥12 | – |
+
+Repair, 38 bus failures of the 5-bus demo schedule:
+- Greedy repair always matches the replayed QUBO optimum, which is what QAOA targets, and takes about 1 ms.
+- Both match the true-cost optimum in 26 of 38 events.
+- The remaining gap comes from the pairwise QUBO model: it counts reserve activation per trip and treats insertion costs as additive.
+
+On this problem size, classical methods are therefore fast and exact. The quantum part has to
+be judged by how it scales and by how well the circuit design works, not by solution quality on these instances.
+
 ## Visualization and demo (work package G)
 
 ```sh
