@@ -85,7 +85,7 @@ def test_every_option_and_conflict_is_real(setup, demo):
     inst, _ = setup
     for k, l in demo.conflicts:
         ok, ol = demo.options[k], demo.options[l]
-        assert ok.target == ol.target and ok.trip != ol.trip
+        assert ok.target is not None and ol.target is not None and ok.trip != ol.trip
     # each single option replays; each non-conflicting pair on one bus replays
     for k, o in enumerate(demo.options):
         if o.kind != "cancel":

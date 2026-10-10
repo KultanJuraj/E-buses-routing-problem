@@ -28,7 +28,8 @@ sys.path.insert(0, str(ROOT))
 
 from evsp import load_instance  # noqa: E402
 from evsp.columns import load_columns  # noqa: E402
-from evsp.disruption import Disruption, Schedule, apply_assignment, build_repair_problem  # noqa: E402
+from evsp.disruption import (Disruption, Schedule, apply_assignment, build_repair_problem,
+                             cancel_all_assignment)  # noqa: E402
 from evsp.qaoa import circuit_metrics, qaoa_circuit, run_qaoa, sample_with_qiskit, shots_for_confidence  # noqa: E402
 from evsp.solvers import Landscape, simulated_annealing  # noqa: E402
 from evsp.xy_qaoa import OneHotSpace, XYQAOA, run_xy_qaoa, xy_qaoa_circuit  # noqa: E402
@@ -128,13 +129,18 @@ def main() -> None:
     best_state = int(np.argmin(space.energies))
     x_opt = space.bits(best_state)
     plan = apply_assignment(inst, rp, x_opt)
-    print(f"\nexact optimum ({time.time() - t:.1f}s): QUBO energy {space.optimum_energy:.1f}, true extra cost "
+    used_fallback = not plan.feasible
+    if used_fallback:
+        x_opt, plan = cancel_all_assignment(inst, rp)
+    print(f"\npairwise-model optimum ({time.time() - t:.1f}s): QUBO energy {space.optimum_energy:.1f}; "
+          f"validated plan{' (cancel-all fallback)' if used_fallback else ''}: true extra cost "
           f"{plan.extra_cost:.1f}, cancelled {len(plan.cancelled)}, jointly feasible {plan.jointly_feasible}, "
           f"charger capacity ok {plan.capacity_ok}")
     print("\n".join(describe_plan(inst, plan)))
-    out["optimum"] = {"energy": space.optimum_energy, "extra_cost": plan.extra_cost, "assignment": plan.assignment,
+    out["optimum"] = {"pairwise_model_energy": space.optimum_energy, "extra_cost": plan.extra_cost,
+                      "assignment": plan.assignment,
                       "jointly_feasible": plan.jointly_feasible, "capacity_ok": plan.capacity_ok,
-                      "problems": plan.problems}
+                      "used_cancel_all_fallback": used_fallback, "problems": plan.problems}
 
     q = rp.to_qubo()
     rows = []
@@ -215,10 +221,16 @@ def main() -> None:
                       for r in rows]
     top = int(np.argmax(xy_probs))
     top_plan = apply_assignment(inst, rp, space.bits(top))
-    print(f"\nmost likely XY-QAOA answer: extra cost {top_plan.extra_cost:.1f}, optimal "
+    xy_fallback = not top_plan.feasible
+    if xy_fallback:
+        _, top_plan = cancel_all_assignment(inst, rp)
+    print(f"\nmost likely XY-QAOA answer{' (cancel-all fallback)' if xy_fallback else ''}: "
+          f"extra cost {top_plan.extra_cost:.1f}, optimal "
           f"{bool(space.optimum_mask()[top])}, jointly feasible {top_plan.jointly_feasible}")
     out["xy_most_likely"] = {"assignment": top_plan.assignment, "extra_cost": top_plan.extra_cost,
-                             "optimal": bool(space.optimum_mask()[top])}
+                             "optimal": bool(not xy_fallback and space.optimum_mask()[top]),
+                             "sampled_state_optimal": bool(space.optimum_mask()[top]),
+                             "used_cancel_all_fallback": xy_fallback}
 
     args.out.mkdir(parents=True, exist_ok=True)
     tag = f"bus_{event.bus}_{hhmm(event.at_min)}" if event.kind == "bus" else \

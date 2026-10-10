@@ -144,6 +144,10 @@ class QUBO:
         """Energy of one bitstring (shape [n]) or many (shape [B, n])."""
         x = np.asarray(x, dtype=float)
         single = x.ndim == 1
+        if x.ndim not in (1, 2) or x.shape[-1] != self.n:
+            raise ValueError(f"expected a bitstring with {self.n} bits or a batch shaped [B, {self.n}]")
+        if not np.all(np.isfinite(x)) or not np.all((x == 0) | (x == 1)):
+            raise ValueError("QUBO solutions must contain only binary values 0 or 1")
         x = np.atleast_2d(x)
         m = self.matrix()
         e = np.einsum("bi,ij,bj->b", x, m, x) + self.offset
@@ -152,7 +156,10 @@ class QUBO:
     # ---------------------------------------------------------------- reading a solution
     def evaluate(self, x) -> dict:
         """Break a bitstring down into the terms of H and check feasibility."""
-        x = np.asarray(x).astype(int)
+        x = np.asarray(x)
+        # Validate before casting: otherwise values such as 0.7 silently become 0.
+        self.energy(x)
+        x = x.astype(int)
         chosen = [k for k in range(self.n) if x[k]]
         cover_count = [sum(x[k] for k in cols) for cols in self._cover]
         missing = [self._trip_ids[i] for i, c in enumerate(cover_count) if c == 0]

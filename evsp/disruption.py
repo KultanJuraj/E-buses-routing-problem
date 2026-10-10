@@ -21,7 +21,7 @@ The one-hot groups are what the XY mixer (evsp/xy_qaoa.py) preserves.
     ev = Disruption.bus_failure(sched, "k4", at_min=9 * 60)
     rp = build_repair_problem(inst, sched, ev)
     q = rp.to_qubo()                          # QUBO with one-hot penalties (for X-mixer QAOA, SA)
-    plan = apply_assignment(inst, sched, ev, rp, x)
+    plan = apply_assignment(inst, rp, x)
 """
 
 from __future__ import annotations
@@ -216,6 +216,22 @@ def _hhmm(m: float) -> str:
     return f"{m // 60:02d}:{m % 60:02d}"
 
 
+def _history_matches(before: Column, after: Column, inst: Instance, at_min: float) -> bool:
+    """Return whether a replanned duty preserves all work and charging before an event."""
+    tb = inst.trip_by_id
+    before_trips = [t for t in before.trips if tb[t].dep_min < at_min]
+    after_trips = [t for t in after.trips if tb[t].dep_min < at_min]
+    if before_trips != after_trips:
+        return False
+
+    def past_charges(col: Column):
+        return sorted((ch.station, round(ch.start_min, 6), round(min(ch.end_min, at_min), 6),
+                       round(ch.power_kw, 6))
+                      for ch in col.charges if ch.start_min < at_min)
+
+    return past_charges(before) == past_charges(after)
+
+
 # --------------------------------------------------------------------------- repair problem
 
 @dataclass
@@ -300,9 +316,13 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
     affected: list[str] = []
     for bus, col in schedule.duties.items():
         if event.kind == "bus" and bus == event.bus:
-            affected += [t for t in col.trips if tb[t].dep_min >= event.at_min]
-            # the failed bus is gone; only its charging before the failure still occupied a charger
-            base[f"{bus}*"] = replace(col, charges=[ch for ch in col.charges if ch.start_min < event.at_min])
+            # A trip already in progress when the bus fails is disrupted too.
+            affected += [t for t in col.trips if tb[t].dep_min >= event.at_min or tb[t].arr_min > event.at_min]
+            # The failed bus is gone. Keep only charger occupancy up to the failure time.
+            past_charges = [replace(ch, end_min=min(ch.end_min, event.at_min),
+                                    grid_kwh=ch.power_kw * (min(ch.end_min, event.at_min) - ch.start_min) / 60.0)
+                            for ch in col.charges if ch.start_min < event.at_min]
+            base[f"{bus}*"] = replace(col, charges=past_charges)
             continue
         hit = event.kind == "charger" and any(
             ch.station == event.station and ch.start_min < event.until_min and event.at_min < ch.end_min
@@ -312,7 +332,7 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
             continue
         others = _merge(blocked, schedule.occupied(exclude=(bus,)))
         plan = plan_duty(inst, col.trips, blocked=others, vehicle_cost=col.vehicle_cost, col_id=bus)
-        if plan is not None:
+        if plan is not None and _history_matches(col, plan, inst, event.at_min):
             base[bus] = plan                                          # re-routed to another charger
             continue
         cut = min(ch.start_min for ch in col.charges if ch.station == event.station
@@ -321,12 +341,15 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
         plan = None
         while keep:              # without that charge the bus may not even get back: hand over more trips
             plan = plan_duty(inst, keep, blocked=others, vehicle_cost=col.vehicle_cost, col_id=bus)
-            if plan is not None:
+            if plan is not None and _history_matches(col, plan, inst, event.at_min):
                 break
+            plan = None
             keep = keep[:-1]
         affected += [t for t in col.trips if t not in keep]
         if plan is not None:
             base[bus] = plan
+        elif any(tb[t].dep_min < event.at_min for t in col.trips):
+            raise ValueError(f"{event.describe()}: cannot preserve {bus}'s pre-event duty history")
     affected = sorted(set(affected), key=lambda t: (tb[t].dep_min, t))
     if not affected:
         raise ValueError(f"{event.describe()}: no trips are affected")
@@ -345,8 +368,9 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
             return plan_duty(inst, extra, earliest_start=event.at_min, blocked=occupied_except(None),
                              vehicle_cost=0.0, col_id=target)
         col = base[target]
-        return plan_duty(inst, col.trips + extra, blocked=occupied_except(target), vehicle_cost=col.vehicle_cost,
+        plan = plan_duty(inst, col.trips + extra, blocked=occupied_except(target), vehicle_cost=col.vehicle_cost,
                          col_id=target)
+        return plan if plan is not None and _history_matches(col, plan, inst, event.at_min) else None
 
     base_cost = {b: (plan_duty(inst, base[b].trips, blocked=occupied_except(b),
                                vehicle_cost=base[b].vehicle_cost) or base[b]).cost for b in buses}
@@ -354,31 +378,45 @@ def build_repair_problem(inst: Instance, schedule: Schedule, event: Disruption, 
     # ---- options per trip
     options: list[Option] = []
     groups: list[list[int]] = []
+    option_plans: dict[int, Column] = {}
     for t in affected:
         cand = []
         for b in buses:
             plan = plan_with(b, [t])
             if plan is not None:
-                cand.append(Option(t, "bus", b, plan.cost - base_cost[b]))
-        cand = sorted(cand, key=lambda o: o.cost)[:max_bus_options]
+                cand.append((Option(t, "bus", b, plan.cost - base_cost[b]), plan))
+        cand = sorted(cand, key=lambda item: item[0].cost)[:max_bus_options]
         for r in range(reserves):
             plan = plan_with(f"R{r + 1}", [t])
             if plan is not None:
-                cand.append(Option(t, "reserve", f"R{r + 1}", reserve_cost + plan.cost))
-        cand.append(Option(t, "cancel", None, cancel_cost))
+                cand.append((Option(t, "reserve", f"R{r + 1}", reserve_cost + plan.cost), plan))
+        cand.append((Option(t, "cancel", None, cancel_cost), None))
         groups.append(list(range(len(options), len(options) + len(cand))))
-        options += cand
+        for option, plan in cand:
+            pos = len(options)
+            options.append(option)
+            if plan is not None:
+                option_plans[pos] = plan
 
-    # ---- pairwise conflicts on the same bus / reserve
-    by_target: dict[str, list[int]] = defaultdict(list)
-    for k, o in enumerate(options):
-        if o.target is not None:
-            by_target[o.target].append(k)
-    conflicts = []
-    for target, ks in by_target.items():
-        for k, l in combinations(ks, 2):
-            if options[k].trip != options[l].trip and plan_with(target, [options[k].trip, options[l].trip]) is None:
-                conflicts.append((k, l))
+    # ---- pairwise conflicts
+    conflicts = set()
+    for k, l in combinations(range(len(options)), 2):
+        ok, ol = options[k], options[l]
+        if ok.trip == ol.trip or ok.target is None or ol.target is None:
+            continue
+        same_target = ok.target == ol.target
+        shared_charger = any(
+            a.station == b.station and a.start_min < b.end_min - EPS and b.start_min < a.end_min - EPS
+            for a in option_plans[k].charges
+            for b in option_plans[l].charges
+        ) if k in option_plans and l in option_plans else False
+        # Restrict each bus to one inserted trip. Also prevent simultaneous use of
+        # the same charger in the independently planned options; this is deliberately
+        # conservative for multi-plug stations and keeps higher-order capacity errors
+        # out of the pairwise QUBO.
+        if same_target or shared_charger:
+            conflicts.add((k, l))
+    conflicts = sorted(conflicts)
 
     return RepairProblem(event=event, trips=affected, options=options, groups=groups, conflicts=conflicts,
                          base_plans=base, blocked=dict(blocked),
@@ -410,8 +448,14 @@ class RepairPlan:
 
 def apply_assignment(inst: Instance, rp: RepairProblem, x) -> RepairPlan:
     """Replay the chosen options as full duties and check them together."""
-    x = np.asarray(x).astype(int)
+    x = np.asarray(x)
+    rp.to_qubo().energy(x)  # reject malformed bitstrings before integer conversion
+    x = x.astype(int)
     problems = []
+    selected = set(np.flatnonzero(x))
+    violated = [(k, l) for k, l in rp.conflicts if k in selected and l in selected]
+    if violated:
+        problems.append(f"pairwise repair conflicts selected: {violated}")
     assignment: dict[str, str] = {}
     for t, g in zip(rp.trips, rp.groups):
         chosen = [k for k in g if x[k]]
@@ -440,6 +484,8 @@ def apply_assignment(inst: Instance, rp: RepairProblem, x) -> RepairPlan:
         else:
             col = rp.base_plans[target]
             plan = plan_duty(inst, col.trips + trips, blocked=occupied, vehicle_cost=col.vehicle_cost, col_id=target)
+            if plan is not None and not _history_matches(col, plan, inst, rp.event.at_min):
+                plan = None
             before = plan_duty(inst, col.trips, blocked=occupied, vehicle_cost=col.vehicle_cost) or col
             if plan is not None:
                 total += plan.cost - before.cost
@@ -456,10 +502,24 @@ def apply_assignment(inst: Instance, rp: RepairProblem, x) -> RepairPlan:
     if not capacity_ok:
         problems.append("charger capacity exceeded")
     one_each = len(assignment) == len(rp.trips)
-    joint = one_each and all(d is not None for d in duties.values())
+    joint = one_each and not violated and all(d is not None for d in duties.values()) and capacity_ok
     return RepairPlan(feasible=one_each and joint, jointly_feasible=joint, capacity_ok=capacity_ok,
                       assignment=assignment, duties=duties, cancelled=cancelled,
                       extra_cost=total if joint else math.inf, problems=problems)
+
+
+def cancel_all_assignment(inst: Instance, rp: RepairProblem) -> tuple[np.ndarray, RepairPlan]:
+    """Return the guaranteed one-hot fallback that cancels every affected trip."""
+    x = np.zeros(rp.n, dtype=int)
+    for trip, group in zip(rp.trips, rp.groups):
+        cancel = [k for k in group if rp.options[k].kind == "cancel"]
+        if len(cancel) != 1:
+            raise ValueError(f"trip {trip}: expected exactly one cancel option")
+        x[cancel[0]] = 1
+    plan = apply_assignment(inst, rp, x)
+    if not plan.feasible:
+        raise ValueError("cancel-all fallback is not feasible: " + "; ".join(plan.problems))
+    return x, plan
 
 
 def _capacity_ok(inst: Instance, duties: list[Column]) -> bool:
