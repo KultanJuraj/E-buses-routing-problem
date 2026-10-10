@@ -103,16 +103,19 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
                  height: Optional[int] = None):
     """One row per bus: trips (blue, orange if reassigned), charging (aqua, station label), deadheads (gray).
 
-    failed: {bus: time} draws the failure point; moved: {trip: new bus}; cancelled: trips shown on
-    their own row "zrušené"; outage: (station, from, to) shades the charger outage window.
+    failed: {bus: time} draws the failure point; moved: {trip: new bus}; cancelled: trips shown
+    on the failed bus's row; outage: (station, from, to) shades the charger outage window.
     """
     import plotly.graph_objects as go
 
     tb = inst.trip_by_id
     failed, moved, cancelled = failed or {}, moved or {}, list(cancelled or [])
     rows = sorted(duties, key=lambda b: (b.startswith("R"), duties[b].start_min if duties[b] else 0))
-    if cancelled:
-        rows.append("zrušené")
+    # A cancelled trip belongs to the failed bus's row; keep that bus visible even
+    # when the repaired schedule no longer has a duty assigned to it.
+    cancel_row = next(iter(failed), rows[0] if rows else None)
+    if cancelled and cancel_row is not None and cancel_row not in rows:
+        rows.append(cancel_row)
     fig = go.Figure()
     shown = set()
 
@@ -128,14 +131,7 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
 
     lo, hi = math.inf, -math.inf
     for bus in rows:
-        if bus == "zrušené":
-            for tid in cancelled:
-                t = tb[tid]
-                bar(bus, t.dep_min, t.arr_min, CRITICAL, "zrušený spoj",
-                    f"<b>zrušený spoj {tid}</b><br>{hhmm(t.dep_min)}-{hhmm(t.arr_min)}", text="zrušené",
-                    pattern="/")
-            continue
-        col = duties[bus]
+        col = duties.get(bus)
         if col is None:
             continue
         lo, hi = min(lo, col.start_min), max(hi, col.end_min)
@@ -158,6 +154,12 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
                 f"<b>{bus}</b> nabíjanie {ch.station}<br>{hhmm(ch.start_min)}-{hhmm(ch.end_min)}, "
                 f"{ch.power_kw:.0f} kW, {ch.grid_kwh:.0f} kWh<br>SoC {ch.soc_before:.0%} → {ch.soc_after:.0%}",
                 text=ch.station)
+    if cancel_row is not None:
+        for tid in cancelled:
+            t = tb[tid]
+            bar(cancel_row, t.dep_min, t.arr_min, CRITICAL, "zrušený spoj",
+                f"<b>zrušený spoj {tid}</b><br>{hhmm(t.dep_min)}-{hhmm(t.arr_min)}", text="zrušené",
+                pattern="/")
     for bus, at in failed.items():
         if bus in duties:
             fig.add_trace(go.Scatter(
