@@ -6,7 +6,7 @@ import pytest
 
 from evsp import load_instance
 from evsp.columns import generate_columns, select_columns, solve_milp
-from evsp.qubo import bitstring_to_x, brute_force, build_qubo, variant_weights
+from evsp.qubo import Weights, bitstring_to_x, brute_force, build_qubo, tune_weights, variant_weights
 
 ROOT = Path(__file__).resolve().parents[1]
 VARIANTS = ["E1", "E2", "E3", "E4"]
@@ -171,3 +171,83 @@ def test_coverage_pairs_only_between_columns_sharing_a_trip(tiny):
     for k, l in combinations(range(q.n), 2):
         shared = set(cs.columns[idx[k]].trips) & set(cs.columns[idx[l]].trips)
         assert ((k, l) in q.quadratic) == bool(shared)
+
+
+# ---------------------------------------------------------------- review fixes (PR #4)
+
+@pytest.mark.parametrize("variant", VARIANTS)
+def test_normalization_only_changes_units(small, variant):
+    """normalize_costs divides the whole H (costs, R, w_rob, penalties) by one factor."""
+    cs, idx = small
+    raw = build_qubo(cs, _weights(cs, variant, idx), indices=idx)
+    w = _weights(cs, variant, idx)
+    w.normalize_costs = True
+    norm = build_qubo(cs, w, indices=idx)
+    scale = norm.meta["cost_scale"]
+    assert scale > 1
+    assert np.max(norm._costs / scale) <= 1 + 1e-12
+    for x in np.random.default_rng(4).integers(0, 2, size=(20, raw.n)):
+        assert norm.energy(x) * scale == pytest.approx(raw.energy(x), rel=1e-9, abs=1e-6)
+    assert np.array_equal(brute_force(raw)[0], brute_force(norm)[0])
+
+
+def test_normalization_keeps_explicit_penalties_in_cost_units(small):
+    cs, idx = small
+    w = variant_weights("E4", cs.assumptions)
+    w.P, w.Q = 5000.0, 7000.0
+    raw = build_qubo(cs, w, indices=idx)
+    w2 = variant_weights("E4", cs.assumptions)
+    w2.P, w2.Q, w2.normalize_costs = 5000.0, 7000.0, True
+    norm = build_qubo(cs, w2, indices=idx)
+    assert norm.meta["P"] * norm.meta["cost_scale"] == pytest.approx(raw.meta["P"])
+    assert norm.meta["Q"] * norm.meta["cost_scale"] == pytest.approx(raw.meta["Q"])
+
+
+def test_energy_basis_kwh(small):
+    cs, idx = small
+    w = variant_weights("E2", cs.assumptions)
+    w.energy_basis = "kwh"
+    q = build_qubo(cs, w, indices=idx)
+    cols = [cs.columns[k] for k in idx]
+    expected = [w.w_veh + w.w_dh * c.deadhead_km + w.w_en * (c.grid_kwh_day + c.refill_kwh) for c in cols]
+    assert q._costs == pytest.approx(expected)
+    assert q.evaluate(brute_force(q)[0])["feasible"]
+
+
+def test_tune_weights_keeps_e2_comparable_with_milp(small):
+    cs, idx = small
+    w, trials = tune_weights(cs, variant_weights("E2", cs.assumptions), idx)
+    assert w.R == 0 and {t["R"] for t in trials} == {0.0}
+    assert sum(t["selected"] for t in trials) == 1
+    x, e = brute_force(build_qubo(cs, w, indices=idx))
+    assert e == pytest.approx(solve_milp(cs, idx).objective, rel=1e-9)
+
+
+def test_tune_weights_never_trades_vehicles_for_peak(small):
+    cs, idx = small
+    w, trials = tune_weights(cs, variant_weights("E4", cs.assumptions), idx)
+    feasible = [t for t in trials if t["feasible"]]
+    chosen = next(t for t in trials if t["selected"])
+    assert chosen["feasible"] and len({t["R"] for t in trials}) > 1
+    assert chosen["n_vehicles"] == min(t["n_vehicles"] for t in feasible)
+    assert chosen["peak_kw_total"] == min(t["peak_kw_total"] for t in feasible
+                                         if t["n_vehicles"] == chosen["n_vehicles"])
+
+
+def test_weights_validation():
+    with pytest.raises(ValueError):
+        Weights(peak_scope="grid")
+    with pytest.raises(ValueError):
+        Weights(energy_basis="joules")
+    with pytest.raises(ValueError):
+        Weights(R=-1.0)
+
+
+def test_optional_packages_are_not_required_for_import():
+    """qubo.py must import without dimod / qiskit-optimization (they are used lazily)."""
+    import subprocess
+    import sys
+    code = ("import sys; sys.modules['dimod'] = None; sys.modules['qiskit_optimization'] = None; "
+            "import evsp.qubo")
+    result = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

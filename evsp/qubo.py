@@ -12,7 +12,9 @@ the "Účelové funkcie E-VSP" document:
 
 with c_k = w_veh + w_dh D_k + w_en * E_k. E_k can be tariff cost (the default,
 to preserve parity with the existing MILP) or purchased grid kWh. Costs can be
-normalized to [0, 1] before penalties are added. After y_k^2 = y_k it is
+normalized to [0, 1]: every weight given in cost units (R, w_rob and explicit
+P, Q, M) is divided by the same factor, so the whole Hamiltonian is rescaled and
+the ground state does not change. After y_k^2 = y_k it is
 stored as  E(y) = offset + sum_k lin_k y_k + sum_{k<l} quad_kl y_k y_l.
 
 Variants (see `variant_weights`):
@@ -39,9 +41,6 @@ from typing import Optional
 
 import numpy as np
 
-import dimod
-from qiskit_optimization import QuadraticProgram
-
 from .columns import ColumnSet
 
 
@@ -63,7 +62,7 @@ class Weights:
     peak_unit_kw: float = 100.0      # power is measured in units of this many kW
     peak_scope: str = "total"        # grid-wide sum_t (sum_s .)^2, or per-station sum_s sum_t (.)^2
     energy_basis: str = "tariff"     # "tariff" preserves MILP parity; "kwh" prices grid kWh directly
-    normalize_costs: bool = False    # divide the cost component by max_k(c_k), penalties follow suit
+    normalize_costs: bool = False    # divide H by max_k(c_k): costs <= 1, same ground state
     penalty_factor: float = 2.0      # P = Q = factor * max_k(largest cost a column can add)
     variant: str = "custom"
 
@@ -209,7 +208,7 @@ class QUBO:
 
     def to_quadratic_program(self):
         """qiskit-optimization QuadraticProgram (minimize), one binary per column."""
-
+        from qiskit_optimization import QuadraticProgram
 
         qp = QuadraticProgram(name=self.meta.get("name", "evsp"))
         for name in self.names:
@@ -221,7 +220,7 @@ class QUBO:
 
     def to_bqm(self):
         """dimod BinaryQuadraticModel (for simulated annealing / D-Wave)."""
-
+        import dimod
 
         return dimod.BinaryQuadraticModel(
             {k: float(v) for k, v in enumerate(self.linear)},
@@ -303,6 +302,8 @@ def build_qubo(cs: ColumnSet, weights: Optional[Weights] = None, indices: Option
     ], dtype=float)
     cost_scale = max(float(np.max(np.abs(raw_costs), initial=0.0)), 1.0) if w.normalize_costs else 1.0
     costs = raw_costs / cost_scale
+    # weights are given in cost units; rescale them with the costs so normalization only changes units
+    R_eff, rob_eff = w.R / cost_scale, w.w_rob / cost_scale
 
     # ---- power tensor in peak units
     power, stations, n_slots = cs.power_tensor(idx)
@@ -321,10 +322,10 @@ def build_qubo(cs: ColumnSet, weights: Optional[Weights] = None, indices: Option
         tight_max[k] = max(tight_max[k], r)
         tight_max[l] = max(tight_max[l], r)
 
-    base_pen = auto_penalties(costs, peak_self, w, tight_max)
-    P = w.P if w.P is not None else base_pen
-    Q = w.Q if w.Q is not None else base_pen
-    M = base_pen if w.M < 0 else w.M
+    base_pen = auto_penalties(costs, peak_self, replace(w, R=R_eff, w_rob=rob_eff), tight_max)
+    P = w.P / cost_scale if w.P is not None else base_pen
+    Q = w.Q / cost_scale if w.Q is not None else base_pen
+    M = base_pen if w.M < 0 else w.M / cost_scale
 
     lin = costs.copy()
     quad: dict[tuple[int, int], float] = defaultdict(float)
@@ -355,19 +356,19 @@ def build_qubo(cs: ColumnSet, weights: Optional[Weights] = None, indices: Option
         add(k, l, Q)
 
     # ---- peak: R sum_{s,t} (sum_k p y)^2
-    if w.R and power_terms.size:
-        lin += w.R * peak_self
+    if R_eff and power_terms.size:
+        lin += R_eff * peak_self
         flat = power_terms.reshape(n, -1)
         gram = flat @ flat.T
         for k in range(n):
             for l in range(k + 1, n):
                 if gram[k, l] > 1e-12:
-                    add(k, l, 2 * w.R * gram[k, l])
+                    add(k, l, 2 * R_eff * gram[k, l])
 
     # ---- robustness on chargers
-    if w.w_rob:
+    if rob_eff:
         for k, l, r in tight:
-            add(k, l, w.w_rob * r)
+            add(k, l, rob_eff * r)
 
     # ---- fleet size: M (sum y - V)^2 = M(sum y (1 - 2V) + 2 sum_{k<l} y y + V^2)
     if M and w.V is not None:
@@ -392,12 +393,16 @@ def tune_weights(cs: ColumnSet, weights: Weights, indices: list[int],
                  max_n: int = 20) -> tuple[Weights, list[dict]]:
     """Grid-search P/Q and R by exact ground-state checks on a small selected pool.
 
-    Returns the feasible setting with the lowest grid peak (then cost), plus a
-    record of every tested setting. This is an exploratory tuning aid, not a
-    claim that this finite grid contains globally optimal weights.
+    Returns the feasible setting with the fewest vehicles, then the lowest grid
+    peak, then the lowest cost, plus a record of every tested setting. R is only
+    varied for variants with a peak term (E3, E4); E1/E2 keep R = 0 so E2 stays
+    comparable with the MILP. This is an exploratory tuning aid, not a claim that
+    this finite grid contains globally optimal weights.
     """
     if len(indices) > max_n:
         raise ValueError(f"weight tuning is limited to {max_n} variables; got {len(indices)}")
+    if weights.variant in ("E1", "E2"):
+        peak_weights = (weights.R,)
     trials = []
     feasible = []
     for peak in peak_weights:
@@ -416,7 +421,8 @@ def tune_weights(cs: ColumnSet, weights: Weights, indices: list[int],
                 feasible.append((row, candidate))
     if not feasible:
         raise ValueError("no feasible ground state found in the weight grid; expand penalty_factors")
-    best_row, best_weights = min(feasible, key=lambda item: (item[0]["peak_kw_total"], item[0]["cost"]))
+    best_row, best_weights = min(feasible, key=lambda item: (item[0]["n_vehicles"], item[0]["peak_kw_total"],
+                                                             item[0]["cost"]))
     for row in trials:
         row["selected"] = row is best_row
     return best_weights, trials
