@@ -55,13 +55,38 @@ solve a schedule. `main.py` is an independent Qiskit Bell-state smoke test.
 ## Classical baselines (work package D)
 
 ```sh
-python scripts/run_baselines.py                  # diesel + electric + repair, writes results/baselines.json
-python scripts/run_baselines.py --part diesel --instances large
-python scripts/run_baselines.py --part electric --battery instance 200
-python scripts/run_baselines.py --part repair
+python scripts/run_classical.py                  # diesel + electric + repair, writes results/baselines.json
+python scripts/run_classical.py --part diesel --instances large
+python scripts/run_classical.py --part electric --battery instance 200
+python scripts/run_classical.py --part repair
+python scripts/run_qaoa.py --columns columns/kcm_small_b20_bat200.json --variant E4 --classical-only --compare-peak
 ```
 
-`evsp/baselines.py` contains the classical reference methods:
+`run_qaoa.py --classical-only` benchmarks exact enumeration, simulated annealing
+and tabu search on the same selected columns and QUBO used by QAOA, without
+optimizing angles or constructing a circuit. The existing SA implementation is
+NumPy Metropolis annealing; tabu is multi-start single-bit search with aspiration.
+Exact enumeration is limited to 24 variables. `--sa-reads`, `--sa-sweeps`,
+`--tabu-reads`, `--tabu-steps` and `--seed` control the heuristic runs.
+
+Every run writes JSON plus a CSV table with instance, column file, variant, R,
+qubits, method, QUBO energy, feasibility, cost, vehicles, deadhead km, grid kWh
+(daytime plus overnight refill), peak kW and solver time. Classical filenames
+end in `_classical.json` / `_classical.csv`; `--compare-peak` includes both R
+settings in one table. Classical runs preserve existing QAOA result files.
+Heuristic rows describe the lowest-energy raw solution, including when it is
+infeasible. Normal QAOA runs also export one row per depth for the best raw
+sample, with cumulative optimization time through that depth (INTERP uses the
+preceding layers). These rows are ideal simulations; optional noisy Qiskit
+sampling and classical repair remain separately labelled in JSON. Solver times
+exclude QUBO construction; exact landscape construction is timed separately and
+is shared reference data for SA/QAOA metrics. It is not included in their times.
+
+The greedy dispatcher and MILP in `run_classical.py` are separate operational
+references: they use their own generated duties and the MILP omits the peak
+term, so they are not claimed as results on the selected QAOA QUBO.
+
+`evsp/classical_baselines.py` contains these operational reference methods:
 
 - **Diesel scenarios S1–S3 of the assignment** (no battery). These are polynomial and
   are solved as one minimum-cost flow model over the trip connection graph.
