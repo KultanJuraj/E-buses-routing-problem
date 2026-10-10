@@ -23,6 +23,17 @@ variables it warns and exports without an exact check. Qiskit is pinned in
 `requirements.txt`; `qiskit-optimization` and `dimod` are optional imports needed
 only for their corresponding conversion methods.
 
+QAOA supports `--optimizer cobyla` (default) and `--optimizer spsa`. To compare
+the peak-shaving objective on the same selected columns and solver settings, use:
+
+```sh
+python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E4 --compare-peak
+```
+
+This writes separate `R=0` and `R>0` results, including QAOA and simulated
+annealing metrics. SPSA optimizes the same CVaR objective as COBYLA; the optional
+`--qiskit --noise` mode applies the noise model when sampling the optimized circuit.
+
 ## Column export safety (work package B)
 
 `scripts/build_columns.py` stops before export when replay or schedule validation

@@ -99,6 +99,7 @@ class LayerResult:
     evaluations: int
     seconds: float
     sampled: dict = field(default_factory=dict)
+    optimizer: str = "cobyla"
 
 
 @dataclass
@@ -149,9 +150,26 @@ def shots_for_confidence(p: float, confidence: float = 0.95) -> float:
     return math.ceil(math.log(1 - confidence) / math.log(1 - p))
 
 
+def _spsa(objective, start: np.ndarray, maxiter: int, seed: int) -> tuple[np.ndarray, float, int]:
+    """Minimize an objective using the simultaneous-perturbation estimator."""
+    rng = np.random.default_rng(seed)
+    theta = np.asarray(start, dtype=float).copy()
+    evaluations = 0
+    for k in range(maxiter):
+        delta = rng.choice((-1.0, 1.0), size=theta.size)
+        ak = 0.2 / (k + 1.0) ** 0.602
+        ck = 0.1 / (k + 1.0) ** 0.101
+        plus = objective(theta + ck * delta)
+        minus = objective(theta - ck * delta)
+        evaluations += 2
+        theta -= ak * ((plus - minus) / (2.0 * ck)) * delta
+    value = objective(theta)
+    return theta, value, evaluations + 1
+
+
 def run_qaoa(q: QUBO, landscape: Optional[Landscape] = None, p_max: int = 2, alpha: float = 0.2,
              maxiter: int = 150, grid: tuple[int, int] = (8, 6), grid_starts: int = 3, shots: int = 10_000,
-             seed: int = 0, verbose: bool = False) -> QAOAResult:
+             seed: int = 0, verbose: bool = False, optimizer: str = "cobyla") -> QAOAResult:
     """Optimize QAOA angles for p = 1..p_max and report exact and sampled metrics.
 
     p = 1 is optimized from the `grid_starts` best points of a (gamma, beta) grid. Every next depth
@@ -159,10 +177,12 @@ def run_qaoa(q: QUBO, landscape: Optional[Landscape] = None, p_max: int = 2, alp
     extrapolation of the previous optimum, and the previous optimum padded with a
     zero layer (which reproduces depth p - 1 exactly, so the objective never gets
     worse with depth). The objective is CVaR_alpha of the standardized energy,
-    minimized with COBYLA.
+    minimized with COBYLA, or with SPSA when `optimizer="spsa"`.
     """
     from scipy.optimize import minimize
 
+    if optimizer not in {"cobyla", "spsa"}:
+        raise ValueError("optimizer must be 'cobyla' or 'spsa'")
     land = landscape or Landscape.from_qubo(q)
     sim = FastQAOA(land)
     rng = np.random.default_rng(seed)
@@ -184,18 +204,22 @@ def run_qaoa(q: QUBO, landscape: Optional[Landscape] = None, p_max: int = 2, alp
             g_prev, b_prev = theta[:p - 1], theta[p - 1:]
             starts = [np.concatenate([_interp(g_prev), _interp(b_prev)]),
                       np.concatenate([g_prev, [0.0], b_prev, [0.0]])]
-        best = None
-        for start in starts:
-            res = minimize(objective, start, method="COBYLA", options={"maxiter": maxiter, "rhobeg": 0.1})
-            if best is None or res.fun < best.fun:
-                best = res
-        theta = best.x
+        best_theta, best_value, best_evals = None, math.inf, 0
+        for start_index, start in enumerate(starts):
+            if optimizer == "spsa":
+                candidate, value, evals = _spsa(objective, start, maxiter, seed + 1009 * p + start_index)
+            else:
+                res = minimize(objective, start, method="COBYLA", options={"maxiter": maxiter, "rhobeg": 0.1})
+                candidate, value, evals = res.x, res.fun, getattr(res, "nfev", 0)
+            if value < best_value:
+                best_theta, best_value, best_evals = candidate, value, evals
+        theta = best_theta
         gammas, betas = theta[:p], theta[p:]
         m = _layer_metrics(sim, gammas, betas, alpha)
         sampled = sample_metrics(q, land, m.pop("probs"), shots=shots, rng=rng)
         layer = LayerResult(p=p, gammas=[float(v) for v in gammas], betas=[float(v) for v in betas],
                             evaluations=sim.evals - e0, seconds=time.time() - t0, sampled=sampled,
-                            **{k: float(v) for k, v in m.items()})
+                            optimizer=optimizer, **{k: float(v) for k, v in m.items()})
         layers.append(layer)
         if verbose:
             print(f"  p={p}: P(opt) {layer.p_optimal:.4f} ({layer.amplification:.0f}x random, "

@@ -124,6 +124,14 @@ def test_qaoa_beats_random_guessing_and_depth_never_hurts(tiny8):
     assert any(L.sampled["found_optimum"] for L in res.layers)
 
 
+def test_spsa_returns_qaoa_metrics(tiny8):
+    _, _, q = tiny8
+    res = run_qaoa(q, Landscape.from_qubo(q), p_max=1, maxiter=8, shots=200, optimizer="spsa", seed=4)
+    assert res.layers[0].optimizer == "spsa"
+    assert np.isfinite(res.layers[0].objective)
+    assert 0 <= res.layers[0].p_feasible <= 1
+
+
 def test_done_criterion_tiny_20_qubits(tiny20):
     """Package E done criterion: QAOA on tiny (20 qubits) gives the optimum a nonzero,
     better-than-random probability."""

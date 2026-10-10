@@ -5,7 +5,8 @@ Usage (from the project root):
     python scripts/run_qaoa.py --columns columns/kcm_small_b20_bat200.json --variant E4 --p-max 2
     python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E2 --qiskit --shots 2000
     python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E2 --qiskit --noise 0.001,0.01
-    python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E2 --scaling 8,10,12,14,16,20
+    python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E2 --optimizer spsa
+    python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E4 --compare-peak
 
 Angles are optimized with the exact numpy simulator (same circuit, see evsp/qaoa.py).
 --qiskit additionally samples the optimized circuit with Qiskit (optionally with
@@ -28,11 +29,11 @@ sys.path.insert(0, str(ROOT))
 from evsp.columns import load_columns, select_columns  # noqa: E402
 from evsp.qaoa import circuit_metrics, counts_metrics, qaoa_circuit, run_qaoa, sample_with_qiskit  # noqa: E402
 from evsp.qubo import build_qubo, variant_weights  # noqa: E402
-from evsp.solvers import Landscape, simulated_annealing  # noqa: E402
+from evsp.solvers import Landscape, index_to_bits, simulated_annealing  # noqa: E402
 
 
-def build(cs, variant, V, indices=None):
-    w = variant_weights(variant, cs.assumptions, V=V)
+def build(cs, variant, V, indices=None, R=None):
+    w = variant_weights(variant, cs.assumptions, V=V, R=1.0 if R is None else R)
     return build_qubo(cs, w, indices=indices)
 
 
@@ -46,7 +47,7 @@ def run_one(q, args, label="") -> dict:
     print(f"  brute force: {t_land:.1f}s | simulated annealing ({args.sa_reads} reads): best E = "
           f"{sa.best_energy:.2f}, P(opt) = {sa.p_optimal:.2f}, {sa.seconds:.1f}s")
     res = run_qaoa(q, land, p_max=args.p_max, alpha=args.alpha, maxiter=args.maxiter, shots=args.shots,
-                   seed=args.seed, verbose=True)
+                   seed=args.seed, verbose=True, optimizer=args.optimizer)
     return {"landscape": {"n": q.n, "optimum_energy": land.optimum_energy,
                           "n_feasible": int(land.feasible.sum()), "uniform_p_optimal": land.uniform_p_optimal()},
             "simulated_annealing": {"best_energy": sa.best_energy, "p_optimal": sa.p_optimal,
@@ -62,6 +63,7 @@ def main() -> None:
     p.add_argument("--p-max", type=int, default=2)
     p.add_argument("--alpha", type=float, default=0.2, help="CVaR fraction (1 = plain expectation)")
     p.add_argument("--maxiter", type=int, default=150, help="COBYLA iterations per depth and start")
+    p.add_argument("--optimizer", choices=["cobyla", "spsa"], default="cobyla")
     p.add_argument("--shots", type=int, default=10_000)
     p.add_argument("--sa-reads", type=int, default=100)
     p.add_argument("--sa-sweeps", type=int, default=500)
@@ -69,6 +71,9 @@ def main() -> None:
     p.add_argument("--qiskit", action="store_true", help="also sample the optimized circuit with Qiskit")
     p.add_argument("--noise", type=str, default=None, help="1q,2q depolarizing error for --qiskit (needs qiskit-aer)")
     p.add_argument("--scaling", type=str, default=None, help="comma-separated qubit counts, e.g. 8,10,12,16,20")
+    p.add_argument("--compare-peak", action="store_true",
+                   help="run the same QAOA settings with R=0 and R=1 and save both results")
+    p.add_argument("--peak-r", type=float, default=1.0, help="positive peak weight for --compare-peak")
     p.add_argument("--out", type=Path, default=ROOT / "results")
     args = p.parse_args()
 
@@ -76,7 +81,26 @@ def main() -> None:
     out = {"columns": args.columns.name, "variant": args.variant, "settings": {
         k: v for k, v in vars(args).items() if k not in ("columns", "out")}}
 
-    if args.scaling:
+    if args.compare_peak:
+        if args.variant not in ("E3", "E4"):
+            p.error("--compare-peak requires variant E3 or E4")
+        if args.peak_r <= 0:
+            p.error("--peak-r must be positive")
+        comparisons = {}
+        for label, peak_r in (("R=0", 0.0), ("R>0", args.peak_r)):
+            q = build(cs, args.variant, args.V, R=peak_r)
+            r = run_one(q, args, label=f"[{label}] ")
+            land, res = r.pop("_land"), r.pop("_res")
+            comparisons[label] = {
+                "R": peak_r,
+                "landscape": r["landscape"],
+                "simulated_annealing": r["simulated_annealing"],
+                "qaoa": r["qaoa"],
+                "peak_kw": q.evaluate(index_to_bits(land.optimum_indices[0], q.n))["peak_kw_total"],
+            }
+        out["peak_comparison"] = comparisons
+        name = f"{args.columns.stem}_{args.variant}_peak_comparison.json"
+    elif args.scaling:
         rows = []
         for k in [int(v) for v in args.scaling.split(",")]:
             idx = select_columns(cs, budget=k).indices
