@@ -8,7 +8,7 @@ from evsp.columns import generate_columns, select_columns, solve_milp
 from evsp.qaoa import (FastQAOA, _interp, circuit_metrics, counts_metrics, qaoa_circuit, run_qaoa,
                        sample_with_qiskit, shots_for_confidence)
 from evsp.qubo import brute_force, build_qubo, variant_weights
-from evsp.solvers import Landscape, bits_to_index, index_to_bits, repair, simulated_annealing
+from evsp.solvers import Landscape, bits_to_index, index_to_bits, repair, simulated_annealing, tabu_search
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -156,6 +156,81 @@ def test_simulated_annealing_finds_optimum(tiny20):
     sa = simulated_annealing(q, reads=50, sweeps=300, seed=0, landscape=land)
     assert sa.best_energy == pytest.approx(land.optimum_energy)
     assert sa.p_optimal > 0
+
+
+@pytest.mark.parametrize("linear,quadratic", [([1., 1.], {(0, 1): -3.}), ([-2.], {}), ([0., 0.], {})])
+def test_tabu_matches_exhaustive_optimum_and_keeps_best(linear, quadratic):
+    from evsp.qubo import QUBO, Weights
+
+    q = QUBO(np.array(linear), quadratic, 7.0, [str(i) for i in range(len(linear))], Weights())
+    energies = q.energy(index_to_bits(np.arange(1 << q.n), q.n))
+    result = tabu_search(q, reads=3, steps=30, seed=3)
+    assert result.best_energy == pytest.approx(energies.min())
+    assert q.energy(result.best_x) == pytest.approx(result.best_energy)
+    assert np.array_equal(result.best_x, tabu_search(q, reads=3, steps=30, seed=3).best_x)
+
+
+def test_best_raw_sample_is_observed_not_exact_or_repaired(tiny8):
+    _, _, q = tiny8
+    land = Landscape.from_qubo(q)
+    observed = np.argsort(land.energies)[-2:]
+    counts = {int(observed[0]): 1, int(observed[1]): 100}
+    metrics = counts_metrics(q, land, counts)
+    assert metrics["best_raw_index"] in counts
+    assert land.energies[metrics["best_raw_index"]] == min(land.energies[observed])
+
+
+@pytest.mark.parametrize("classical", [True, False])
+@pytest.mark.parametrize("mode", ["single", "peak", "scaling"])
+def test_benchmark_cli_exports_same_model_metrics(tiny8, monkeypatch, tmp_path, classical, mode):
+    import csv
+    import json
+    import sys
+    from dataclasses import replace
+    from scripts import run_qaoa as cli
+
+    cs, indices, _ = tiny8
+    cs = replace(cs, columns=[cs.columns[i] for i in indices])
+    monkeypatch.setattr(cli, "load_columns", lambda _: cs)
+    if classical:
+        def forbidden(*args, **kwargs):
+            pytest.fail("classical-only must not run QAOA or build a circuit")
+        monkeypatch.setattr(cli, "run_qaoa", forbidden)
+        monkeypatch.setattr(cli, "qaoa_circuit", forbidden)
+    argv = ["run_qaoa.py", "--columns", "tiny.json", "--variant", "E4", "--out", str(tmp_path),
+            "--sa-reads", "4", "--sa-sweeps", "5", "--tabu-reads", "3", "--tabu-steps", "20",
+            "--p-max", "1", "--maxiter", "5", "--shots", "20"]
+    if classical:
+        argv += ["--classical-only"]
+    if mode == "peak":
+        argv += ["--compare-peak", "--peak-r", "2"]
+    elif mode == "scaling":
+        argv += ["--scaling", str(len(cs.columns))]
+    monkeypatch.setattr(sys, "argv", argv)
+    cli.main()
+    path, = tmp_path.glob("*.json")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    with path.with_suffix(".csv").open(encoding="utf-8", newline="") as stream:
+        rows = list(csv.DictReader(stream))
+    assert len(rows) == (3 if classical else 4) * (2 if mode == "peak" else 1)
+    assert path.name.endswith("_classical.json") == classical
+    assert {float(row["R"]) for row in rows} == ({0., 2.} if mode == "peak" else {1.})
+    results = (list(data["peak_comparison"].values()) if mode == "peak" else
+               data["scaling"] if mode == "scaling" else [data])
+    for result in results:
+        assert ("qaoa" not in result) == classical
+        for row in result["benchmark"]:
+            q = cli.build(cs, "E4", None, R=row["R"])
+            if row["method"].startswith("qaoa"):
+                assert not classical
+                continue
+            report = q.evaluate(result[row["method"]]["best_x"])
+            assert row["energy"] == pytest.approx(report["energy"])
+            assert row["feasible"] == report["feasible"]
+            assert row["peak_kw"] == pytest.approx(report["peak_kw_total"])
+            chosen = [c for c in cs.columns if c.id in report["columns"]]
+            assert row["deadhead_km"] == pytest.approx(sum(c.deadhead_km for c in chosen))
+            assert row["grid_kwh"] == pytest.approx(sum(c.grid_kwh_day + c.refill_kwh for c in chosen))
 
 
 def test_repair(small8):

@@ -52,6 +52,84 @@ This PR prepares versioned input data for duty generation (B), QUBO construction
 (C), and quantum solvers (E). It does not generate battery-feasible duties or
 solve a schedule. `main.py` is an independent Qiskit Bell-state smoke test.
 
+## Classical baselines (work package D)
+
+```sh
+python scripts/run_classical.py                  # diesel + electric + repair, writes results/baselines.json
+python scripts/run_classical.py --part diesel --instances large
+python scripts/run_classical.py --part electric --battery instance 200
+python scripts/run_classical.py --part repair
+python scripts/run_qaoa.py --columns columns/kcm_small_b20_bat200.json --variant E4 --classical-only --compare-peak
+```
+
+`run_qaoa.py --classical-only` benchmarks exact enumeration, simulated annealing
+and tabu search on the same selected columns and QUBO used by QAOA, without
+optimizing angles or constructing a circuit. The existing SA implementation is
+NumPy Metropolis annealing; tabu is multi-start single-bit search with aspiration.
+Exact enumeration is limited to 24 variables. `--sa-reads`, `--sa-sweeps`,
+`--tabu-reads`, `--tabu-steps` and `--seed` control the heuristic runs.
+
+Every run writes JSON plus a CSV table with instance, column file, variant, R,
+qubits, method, QUBO energy, feasibility, cost, vehicles, deadhead km, grid kWh
+(daytime plus overnight refill), peak kW and solver time. Classical filenames
+end in `_classical.json` / `_classical.csv`; `--compare-peak` includes both R
+settings in one table. Classical runs preserve existing QAOA result files.
+Heuristic rows describe the lowest-energy raw solution, including when it is
+infeasible. Normal QAOA runs also export one row per depth for the best raw
+sample, with cumulative optimization time through that depth (INTERP uses the
+preceding layers). These rows are ideal simulations; optional noisy Qiskit
+sampling and classical repair remain separately labelled in JSON. Solver times
+exclude QUBO construction; exact landscape construction is timed separately and
+is shared reference data for SA/QAOA metrics. It is not included in their times.
+
+The greedy dispatcher and MILP in `run_classical.py` are separate operational
+references: they use their own generated duties and the MILP omits the peak
+term, so they are not claimed as results on the selected QAOA QUBO.
+
+`evsp/classical_baselines.py` contains these operational reference methods:
+
+- **Diesel scenarios S1–S3 of the assignment** (no battery). These are polynomial and
+  are solved as one minimum-cost flow model over the trip connection graph.
+  - S1 minimises buses.
+  - S2 minimises buses plus deadhead km with the instance weights (500 per bus, 1.5 per km).
+  - S3 minimises deadhead km with at most `v_max` buses and returns a trade-off curve.
+
+  The LP constraint matrix is totally unimodular, and `solve_flow` checks that the
+  HiGHS solution is integral. S1 is cross-checked by Hopcroft–Karp bipartite
+  matching (minimum path cover = trips − maximum matching).
+- **Real GTFS blocks** are measured with the same deadhead estimates. They are not a
+  fair optimum to beat: real blocks also serve routes outside the instance, and real
+  operations have constraints (drivers, garages) that are not modelled here.
+- **Electric baselines:**
+  - `battery_check` replays the diesel optimum with a battery.
+  - `greedy_electric` is a first-fit dispatcher: cheapest feasible insertion, greedy
+    charging, and charger capacity respected. Its duties are valid columns of package B.
+  - For tiny and small, the exact reference is the MILP over all enumerated duties.
+    For larger instances, the diesel S1 fleet is a lower bound.
+- **Repair baselines:**
+  - `greedy_repair` gives each affected trip its cheapest option that still replays,
+    in time order.
+  - `exact_repair` replays every one-hot assignment, so it counts reserve activation
+    once and finds the true-cost optimum.
+
+Results on the bundled data (battery 200 kWh for the electric part):
+
+| | tiny | small | medium | large |
+|---|---:|---:|---:|---:|
+| S1 / S2 buses (flow) | 2 | 5 | 12 | 118 |
+| S2 deadhead km | 71 | 176 | 454 | 5107 |
+| real GTFS blocks | 2 | 5 | 32 | 204 |
+| diesel optimum still battery-feasible | 0/2 | 3/5 | 0/12 | – |
+| greedy electric buses / exact MILP buses | 4 / 3 | 7 / 5 | 21 / ≥12 | – |
+
+Repair, 38 bus failures of the 5-bus demo schedule:
+- Greedy repair always matches the replayed QUBO optimum, which is what QAOA targets, and takes about 1 ms.
+- Both match the true-cost optimum in 26 of 38 events.
+- The remaining gap comes from the pairwise QUBO model: it counts reserve activation per trip and treats insertion costs as additive.
+
+On this problem size, classical methods are therefore fast and exact. The quantum part has to
+be judged by how it scales and by how well the circuit design works, not by solution quality on these instances.
+
 ## Visualization and demo (work package G)
 
 ```sh

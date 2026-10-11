@@ -258,6 +258,7 @@ def counts_metrics(q: QUBO, land: Landscape, counts: dict[int, int]) -> dict:
     top = idx[np.argmax(c)]
     return {
         "shots": shots,
+        "best_raw_index": int(idx[np.argmin(land.energies[idx])]),
         "frac_feasible": float(c[feas].sum() / shots),
         "frac_optimal": float(c[opt].sum() / shots),
         "best_feasible_energy": best_raw,

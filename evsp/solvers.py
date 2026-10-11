@@ -1,4 +1,4 @@
-"""Shared tools for package E: the full energy landscape, simulated annealing, repair.
+"""Shared tools for packages D/E: exact landscape, simulated annealing, tabu, repair.
 
 Bit order everywhere is little-endian, the same as Qiskit: state index
     idx = sum_k x_k * 2^k,
@@ -159,6 +159,52 @@ def simulated_annealing(q: QUBO, reads: int = 100, sweeps: int = 1000, t_start: 
     return SAResult(best_x=x[best].astype(int), best_energy=float(finals[best]), energies=finals,
                     p_optimal=p_opt, p_feasible=p_feas, seconds=time.time() - t0,
                     params={"reads": reads, "sweeps": sweeps, "t_start": t_start, "t_end": t_end, "seed": seed})
+
+
+@dataclass
+class TabuResult:
+    best_x: np.ndarray
+    best_energy: float
+    seconds: float
+    params: dict
+
+
+def tabu_search(q: QUBO, reads: int = 20, steps: int = 500, tenure: int = 5,
+                seed: int = 0) -> TabuResult:
+    """Multi-start single-flip tabu search, retaining the best visited state.
+
+    A tabu move is allowed if it improves the chain's best energy (aspiration).
+    Tenure is capped at n - 1 so there is always an admissible move. This solver
+    uses only QUBO coefficients; the exact landscape is not an optimization oracle.
+    """
+    if q.n < 1 or reads < 1 or steps < 1 or tenure < 1:
+        raise ValueError("tabu search needs variables and positive reads, steps and tenure")
+    t0 = time.perf_counter()
+    rng = np.random.default_rng(seed)
+    tenure = min(tenure, q.n - 1)
+    matrix = q.matrix()
+    linear = np.diag(matrix)
+    off = matrix + matrix.T - 2 * np.diag(linear)
+    x = rng.integers(0, 2, size=(reads, q.n))
+    best_x = x.copy()
+    best_energy = q.energy(x)
+    tabu_until = np.zeros_like(x)
+    rows = np.arange(reads)
+    for step in range(steps):
+        energy = q.energy(x)
+        delta = (1 - 2 * x) * (linear + x @ off)
+        candidates = energy[:, None] + delta
+        allowed = (tabu_until <= step) | (candidates < best_energy[:, None] - 1e-9)
+        moves = np.argmin(np.where(allowed, candidates, np.inf), axis=1)
+        x[rows, moves] = 1 - x[rows, moves]
+        tabu_until[rows, moves] = step + tenure + 1
+        energy = q.energy(x)
+        improved = energy < best_energy
+        best_x[improved] = x[improved]
+        best_energy[improved] = energy[improved]
+    winner = int(np.argmin(best_energy))
+    return TabuResult(best_x[winner], float(best_energy[winner]), time.perf_counter() - t0,
+                      {"reads": reads, "steps": steps, "tenure": tenure, "seed": seed})
 
 
 # --------------------------------------------------------------------------- repair
