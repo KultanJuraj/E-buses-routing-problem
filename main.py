@@ -1,11 +1,12 @@
-"""E-bus schedule repair with XY-mixer QAOA: Qollab entry point.
+"""Daily e-bus scheduling and disruption repair: Qollab entry point.
 
 This effort is supported by Qollab & IonQ.
 
 A city runs a 5-bus battery-electric schedule (King County Metro route 150, 200 kWh
-batteries, charging during the day). One bus breaks down. Every affected trip must go
-to another bus, a reserve bus or be cancelled, while batteries and chargers stay
-feasible. This script:
+batteries, charging during the day). This script first compares MILP, exact QUBO
+search, simulated annealing, tabu search and QAOA on the uninterrupted schedule.
+Then one bus breaks down. Every affected trip must go to another bus, a reserve
+bus or be cancelled, while batteries and chargers stay feasible. The repair part:
 
   1. builds the repair problem (one qubit per trip option),
   2. solves it classically: exact optimum, greedy dispatcher rule, simulated annealing,
@@ -13,17 +14,23 @@ feasible. This script:
      and for the XY-mixer QAOA that never leaves the valid "one option per trip" states,
   4. runs ONE XY-QAOA circuit on the selected backend and decodes the measured repairs.
 
+Both comparisons are logged in results/main_bus_<bus>_<time>.json.
+
 On Qollab, press Run: the platform injects `backend` (built-in simulator or the IonQ
 simulator; IonQ accepts one circuit per run, which is exactly what we send).
 Locally:  python main.py                     (k585 fails at 07:00, 14 qubits)
           python main.py --bus k4 --at 06:00  (20 qubits)
           python main.py --shots 2000 --p 2
+          python main.py --schedule-only       (no disruption)
+          python main.py --repair-only         (skip daily-schedule comparison)
 """
 
 from __future__ import annotations
 
 import sys
 import time
+import json
+import math
 from pathlib import Path
 
 try:
@@ -36,10 +43,12 @@ if str(ROOT) not in sys.path:
 import numpy as np  # noqa: E402
 
 from evsp.classical_baselines import exact_repair, greedy_repair  # noqa: E402
+from evsp.columns import solve_milp  # noqa: E402
 from evsp.demo import load_demo_data  # noqa: E402
 from evsp.disruption import Disruption, apply_assignment, build_repair_problem  # noqa: E402
 from evsp.qaoa import circuit_metrics, run_qaoa  # noqa: E402
-from evsp.solvers import Landscape, simulated_annealing  # noqa: E402
+from evsp.qubo import build_qubo, variant_weights  # noqa: E402
+from evsp.solvers import Landscape, index_to_bits, simulated_annealing, tabu_search  # noqa: E402
 from evsp.xy_qaoa import OneHotSpace, best_valid_state, run_xy_qaoa, xy_qaoa_circuit  # noqa: E402
 
 try:
@@ -161,17 +170,94 @@ def draw(inst, sched, event, plan, path: Path) -> None:
     print(f"\nFigure: {path.name} (before/after schedule)")
 
 
+def schedule_comparison(d, p_max: int, shots: int) -> dict:
+    """Run all daily-schedule methods on the bundled duty pool (no disruption)."""
+    cs = d.cs
+    q = build_qubo(cs, variant_weights("E4", cs.assumptions, R=1.0))
+    print(f"\nDaily schedule without disruption: {q.n} duties, E4 (R=1)")
+    t0 = time.time()
+    milp = solve_milp(cs)
+    milp_seconds = time.time() - t0
+    print(f"MILP: {milp.status}, cost {milp.objective:.2f}, {milp.n_vehicles} buses ({milp_seconds:.1f}s)")
+    t0 = time.time()
+    land = Landscape.from_qubo(q)
+    exact_seconds = time.time() - t0
+    exact_x = index_to_bits(int(land.optimum_indices[0]), q.n)
+    sa = simulated_annealing(q, reads=200, sweeps=500, seed=0, landscape=land)
+    tabu = tabu_search(q, reads=20, steps=500, seed=0)
+    print(f"E4 exact energy {land.optimum_energy:.2f}; SA P(optimum) {sa.p_optimal:.3f}; "
+          f"tabu best energy {tabu.best_energy:.2f}")
+    res = run_qaoa(q, land, p_max=p_max, shots=shots, seed=0)
+    best = max(res.layers, key=lambda layer: layer.p_optimal)
+    print(f"Schedule QAOA p={best.p}: P(optimum) {best.p_optimal:.4f}, "
+          f"P(feasible) {best.p_feasible:.4f}")
+
+    def evaluated(x):
+        return q.evaluate(x)
+
+    milp_x = np.zeros(q.n, dtype=int)
+    milp_x[milp.columns] = 1
+    best_raw = max(res.layers, key=lambda layer: layer.p_optimal).sampled["best_raw_index"]
+
+    return {"columns": d.columns_path.name, "variant": "E4", "R": 1.0,
+            "milp": {"objective": "duty cost, without the E4 peak term", "status": milp.status,
+                     "cost": milp.objective, "vehicles": milp.n_vehicles,
+                     "columns": [cs.columns[i].id for i in milp.columns], "seconds": milp_seconds,
+                     "e4_evaluation": evaluated(milp_x)},
+            "qubo_exact": {"energy": land.optimum_energy, "seconds": exact_seconds,
+                           "schedule": evaluated(exact_x)},
+            "simulated_annealing": {"best_energy": sa.best_energy, "p_optimal": sa.p_optimal,
+                                    "p_feasible": sa.p_feasible, "seconds": sa.seconds,
+                                    "schedule": evaluated(sa.best_x)},
+            "tabu_search": {"best_energy": tabu.best_energy, "seconds": tabu.seconds,
+                            "schedule": evaluated(tabu.best_x)},
+            "qaoa": {**res.to_dict(), "best_raw_schedule": evaluated(index_to_bits(best_raw, q.n))}}
+
+
+def save_results(out: dict, bus: str, at: int) -> Path:
+    def json_safe(value):
+        if isinstance(value, dict):
+            return {key: json_safe(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [json_safe(item) for item in value]
+        if isinstance(value, (float, np.floating)):
+            return float(value) if math.isfinite(value) else None  # no feasible QAOA sample
+        if isinstance(value, np.integer):
+            return int(value)
+        if isinstance(value, np.bool_):
+            return bool(value)
+        return value
+
+    directory = ROOT / "results"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"main_bus_{bus}_{hhmm(at).replace(':', '')}.json"
+    path.write_text(json.dumps(json_safe(out), indent=2, default=float, allow_nan=False), encoding="utf-8")
+    print(f"Results: {path}")
+    return path
+
+
 def main() -> None:
     bus = option_arg("--bus", "k585")
     at = minutes(option_arg("--at", "07:00"))
     shots = option_arg("--shots", 1000)
     p_max = option_arg("--p", 2)
+    repair_only = "--repair-only" in sys.argv
+    schedule_only = "--schedule-only" in sys.argv
+    if repair_only and schedule_only:
+        raise ValueError("--repair-only and --schedule-only cannot be combined")
 
     print("E-bus schedule repair with XY-mixer QAOA")
     print("This effort is supported by Qollab & IonQ.\n")
 
     d = load_demo_data()
     inst, sched = d.inst, d.schedule
+    out = {"settings": {"bus": bus, "at": hhmm(at), "shots": shots, "p_max": p_max},
+           "daily_schedule": None, "disruption_repair": None}
+    if not repair_only:
+        out["daily_schedule"] = schedule_comparison(d, p_max, shots)
+        save_results(out, bus, at)
+    if schedule_only:
+        return
     print(f"Schedule: {len(sched.duties)} electric buses, {len(inst.trips)} trips, "
           f"battery {inst.assumptions['battery_kwh']:.0f} kWh, King County Metro route 150")
     for b, c in sorted(sched.duties.items(), key=lambda kv: kv[1].start_min):
@@ -201,6 +287,12 @@ def main() -> None:
           f"greedy dispatcher {greedy_plan.extra_cost:.0f} ({t_greedy * 1000:.0f} ms), "
           f"simulated annealing reaches the QUBO ground state in {sa_p:.0%} of 200 runs")
     print("\n".join(describe_plan(inst, best_plan)))
+    repair_log = {"event": {"bus": bus, "at": hhmm(at)}, "qubits": rp.n,
+                  "exact_repair": {"extra_cost": best_plan.extra_cost, "seconds": t_exact,
+                                   "assignment": best_plan.assignment},
+                  "greedy": {"extra_cost": greedy_plan.extra_cost, "seconds": t_greedy},
+                  "simulated_annealing": {"p_optimal": sa_p, "best_energy": sa.best_energy,
+                                          "reads": 200, "seconds": sa.seconds}}
 
     # ---------------------------------------------------------------- QAOA angles (exact simulation)
     print(f"\nOptimizing QAOA angles (exact simulation, p = 1..{p_max}) ...")
@@ -210,6 +302,9 @@ def main() -> None:
     if rp.n <= 18:                              # 2^n statevector; keep the browser run quick
         land = Landscape.from_qubo(q)
         pen = max(run_qaoa(q, land, p_max=p_max, shots=1000, seed=0).layers, key=lambda L: L.p_optimal)
+    repair_log["xy_qaoa"] = xy.to_dict()
+    repair_log["penalty_qaoa"] = None if pen is None else {"p": pen.p, "p_optimal": pen.p_optimal,
+                                                           "p_feasible": pen.p_feasible}
 
     # ---------------------------------------------------------------- one XY-QAOA circuit on the backend
     qc = xy_qaoa_circuit(rp, xy_best.gammas, xy_best.betas, space)
@@ -230,6 +325,9 @@ def main() -> None:
         tally[x] = tally.get(x, 0) + c
     print(f"Ran {total} shots on {be_name} in {secs:.1f}s: {valid / total:.1%} valid repairs, "
           f"{optimal / total:.1%} optimal (exact prediction {xy_best.p_optimal:.1%})")
+    repair_log["backend_measurement"] = {"backend": be_name, "shots": total, "seconds": secs,
+                                         "p_valid": valid / total, "p_optimal": optimal / total,
+                                         "counts": counts}
 
     # ---------------------------------------------------------------- results
     rows = [(f"random guess (2^{rp.n} bitstrings)", f"{opt_mask.sum() / 2 ** rp.n:.2e}", f"{space.size / 2 ** rp.n:.2e}")]
@@ -254,6 +352,10 @@ def main() -> None:
         print("\n".join(describe_plan(inst, plan)))
         if plan.feasible:
             draw(inst, sched, event, plan, ROOT / "repair.png")
+        repair_log["best_measured_repair"] = {"extra_cost": plan.extra_cost, "feasible": plan.feasible,
+                                              "assignment": plan.assignment}
+    out["disruption_repair"] = repair_log
+    save_results(out, bus, at)
     print("\nThis effort is supported by Qollab & IonQ.")
 
 

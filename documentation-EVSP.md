@@ -90,6 +90,7 @@ flowchart LR
 | G | Plotly charts, Streamlit demo, figure export | merged (PR #7) |
 | D | classical baselines, tabu search, classical-only QUBO benchmark | merged (PR #8) |
 | Qollab | `main.py` entry point, MIT license | merged (PR #9) |
+| Qollab | daily-schedule comparison in `main.py`, `--schedule-only` / `--repair-only`, JSON result log | merged (PR #10) |
 | Benchmark | best of N samples, QAOA vs SA, charts | **to commit** |
 | H | pitch deck (24 slides, `.pptx`) | done, outside the repo |
 
@@ -102,7 +103,9 @@ Python 3.11 or newer. Tested on 3.13 and 3.14, with Qiskit 2.3 and 2.5.
 ```sh
 python -m pip install -r requirements.txt
 python -m pytest -q                   # 178 tests, about 1.5 min
-python main.py                        # Qollab entry point: one repair, QAOA vs classical, ~5 s
+python main.py                        # Qollab entry point: daily-schedule comparison + one repair, ~4 min
+python main.py --repair-only          # one repair, QAOA vs classical, ~5 s
+python main.py --schedule-only        # daily-schedule comparison only
 streamlit run app/demo.py             # interactive demo (Slovak UI)
 python scripts/run_benchmark.py       # best-of-N benchmark + 3 charts, ~10 s
 python scripts/run_classical.py       # classical baselines, ~50 s
@@ -225,6 +228,34 @@ non-binary or wrongly shaped bitstrings.
 The scaling run (8 → 20 qubits) shows P(optimum) falling from 0.26 to 0.0003 for
 penalty QAOA and from 1.0 to 0.12 for SA. Textbook penalty QAOA is clearly worse than
 SA here, which motivated package F.
+
+**Daily-schedule comparison in `main.py`.** By default, `main.py` first compares all
+methods on the bundled 20-duty pool (`columns/kcm_small_b20_bat200.json`, E4, R = 1)
+before it runs the disruption repair:
+
+| method | result |
+|---|---|
+| MILP (duty cost, without the E4 peak term) | cost 3,081.07, 5 buses, 0.3 s |
+| exact QUBO search (E4) | energy 3,185.56 |
+| simulated annealing, 200 runs | P(optimum) 0.150 |
+| tabu search, 20 starts | best energy 3,185.56 (optimum) |
+| QAOA, p = 2 | P(optimum) = P(feasible) = 0.0002 |
+
+- The MILP objective omits the E4 peak term, so it is reported separately. Its
+  selected schedule is also evaluated under E4 (`e4_evaluation`).
+- With P(feasible) = 0.0002, 1,000 shots usually contain no feasible schedule, so the
+  best raw QAOA sample is infeasible. Non-finite values (for example the best
+  feasible energy when no feasible sample was seen) are saved as `null`.
+- The full run takes about 4 minutes locally; almost all of it is the 20-qubit QAOA
+  simulation. `--repair-only` skips this part (about 5 s); `--schedule-only` runs
+  only this part.
+- Both parts are saved to `results/main_bus_<bus>_<time>.json`:
+  - `settings` (bus, time, shots, p_max),
+  - `daily_schedule` (`milp`, `qubo_exact`, `simulated_annealing`, `tabu_search`,
+    `qaoa`),
+  - `disruption_repair` (`exact_repair`, `greedy`, `simulated_annealing`, `xy_qaoa`,
+    `penalty_qaoa`, `backend_measurement` with the measured counts,
+    `best_measured_repair`).
 
 ---
 
@@ -499,7 +530,7 @@ with 500 sweeps vs random valid assignment):
 ## 15. Repository structure and tests
 
 ```
-main.py                    Qollab entry point (one repair, QAOA vs classical, best of N)
+main.py                    Qollab entry point (daily-schedule comparison, one repair, JSON log)
 QOLLAB.md                  Qollab project page text (copied as README.md into the upload)
 LICENSE                    MIT
 requirements.txt           full environment; requirements-qollab.txt for Qollab
@@ -520,7 +551,7 @@ tools/package_qollab.py    builds the Qollab upload
 instances/ columns/ qubo/ results/ tests/
 ```
 
-**Tests: 178 in total.**
+**Tests: 180 in total.**
 
 | File | What it checks |
 |---|---|
@@ -532,6 +563,7 @@ instances/ columns/ qubo/ results/ tests/
 | `test_viz` | charts, repair report, Streamlit AppTest |
 | `test_classical` | flow = matching, S2/S3, integrality, greedy electric vs MILP, repair baselines |
 | `test_benchmark` | best-of-N formulas, Monte Carlo agreement, true costs, XY P(valid) = 1 |
+| `test_main` | result log of `main.py`, including runs where QAOA finds no feasible sample |
 
 ---
 

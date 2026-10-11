@@ -1,4 +1,4 @@
-# E-bus scheduling with quantum optimization (E-VSP)
+# Single-Depot Vehicle Scheduling Problem (VSP) for Electric Buses
 
 
 
@@ -39,8 +39,9 @@ Python 3.11 or newer (tested with 3.13 and 3.14). From the repository root:
 
 ```sh
 python -m pip install -r requirements.txt
-python -m pytest -q          # 178 tests, about 1–2 min
-python main.py               # end-to-end repair run (Qollab entry point), about 5 s
+python -m pytest -q          # 180 tests, about 2 min
+python main.py               # daily-schedule comparison + repair (Qollab entry point), about 4 min
+python main.py --repair-only # repair only, about 5 s
 ```
 
 ## Pipeline: how to work with the project
@@ -104,19 +105,29 @@ streamlit run app/demo.py
 
 ## Qollab entry point (`main.py`)
 
-`main.py` is the file that runs on Qollab. It runs one repair event end to end:
+`main.py` is the file that runs on Qollab. By default, one run first compares
+MILP, exact QUBO search, simulated annealing, tabu search, and QAOA on the daily
+schedule without a disruption. It then runs one repair event end to end:
 
 - the exact true-cost optimum, the greedy dispatcher rule and simulated annealing,
 - XY-mixer QAOA and penalty QAOA (penalty QAOA up to 18 qubits),
 - **one** XY-QAOA circuit transpiled and sampled on the backend that Qollab injects,
   which fits IonQ's limit of one job per run,
-- the best-of-N comparison for the event,
 - a before/after chart, `repair.png`.
+
+Both comparisons are saved to `results/main_bus_<bus>_<time>.json`. The daily
+schedule section uses the same 20-duty pool for all methods; the MILP minimizes
+duty cost without the E4 peak term, so its objective is labeled separately and
+its selected schedule is also evaluated under E4. A full daily-schedule QAOA
+simulation can take several minutes. Add `--repair-only` to skip it.
+Use `--schedule-only` to run and log the disruption-free comparison alone.
 
 ```sh
 python main.py                        # bus k585 fails at 07:00, 14 qubits
 python main.py --bus k4 --at 06:00    # 20 qubits
 python main.py --shots 2000 --p 2
+python main.py --repair-only             # original disruption-only run
+python main.py --schedule-only           # daily schedule, no disruption
 ```
 
 Without an injected `backend`, `main.py` falls back to Qiskit's `BasicSimulator`.
@@ -363,7 +374,7 @@ python scripts/validate_instances.py
 ```
 
 The tests use only files in git. A test that needs a results file writes its own copy
-in a temporary folder, so a fresh clone passes all 178 tests.
+in a temporary folder, so a fresh clone passes all 180 tests.
 
 Validation of the bundled instances does not need the original GTFS download.
 The validation script writes `instances/baseline_validation.json`. Schema errors

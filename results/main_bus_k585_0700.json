@@ -1,0 +1,305 @@
+{
+  "settings": {
+    "bus": "k585",
+    "at": "07:00",
+    "shots": 100,
+    "p_max": 1
+  },
+  "daily_schedule": {
+    "columns": "kcm_small_b20_bat200.json",
+    "variant": "E4",
+    "R": 1.0,
+    "milp": {
+      "objective": "duty cost, without the E4 peak term",
+      "status": "Optimization terminated successfully. (HiGHS Status 7: Optimal)",
+      "cost": 3081.0722,
+      "vehicles": 5,
+      "columns": [
+        "k4",
+        "k190",
+        "k324",
+        "k497",
+        "k585"
+      ],
+      "seconds": 0.672593355178833,
+      "e4_evaluation": {
+        "feasible": true,
+        "columns": [
+          "k4",
+          "k190",
+          "k324",
+          "k497",
+          "k585"
+        ],
+        "n_vehicles": 5,
+        "energy": 3185.558568733428,
+        "cost": 3081.0721999999996,
+        "missing_trips": [],
+        "double_trips": [],
+        "violated_conflicts": [],
+        "tight_minutes": 5.007680452822228,
+        "peak_kw_by_station": {
+          "TOTAL": 450.0
+        },
+        "peak_kw_total": 450.0
+      }
+    },
+    "qubo_exact": {
+      "energy": 3185.558568733428,
+      "seconds": 1.662872076034546,
+      "schedule": {
+        "feasible": true,
+        "columns": [
+          "k4",
+          "k190",
+          "k324",
+          "k497",
+          "k585"
+        ],
+        "n_vehicles": 5,
+        "energy": 3185.558568733428,
+        "cost": 3081.0721999999996,
+        "missing_trips": [],
+        "double_trips": [],
+        "violated_conflicts": [],
+        "tight_minutes": 5.007680452822228,
+        "peak_kw_by_station": {
+          "TOTAL": 450.0
+        },
+        "peak_kw_total": 450.0
+      }
+    },
+    "simulated_annealing": {
+      "best_energy": 3185.558568733428,
+      "p_optimal": 0.15,
+      "p_feasible": 0.15,
+      "seconds": 0.3455791473388672,
+      "schedule": {
+        "feasible": true,
+        "columns": [
+          "k4",
+          "k190",
+          "k324",
+          "k497",
+          "k585"
+        ],
+        "n_vehicles": 5,
+        "energy": 3185.558568733428,
+        "cost": 3081.0721999999996,
+        "missing_trips": [],
+        "double_trips": [],
+        "violated_conflicts": [],
+        "tight_minutes": 5.007680452822228,
+        "peak_kw_by_station": {
+          "TOTAL": 450.0
+        },
+        "peak_kw_total": 450.0
+      }
+    },
+    "tabu_search": {
+      "best_energy": 3185.558568733428,
+      "seconds": 0.10946530000364874,
+      "schedule": {
+        "feasible": true,
+        "columns": [
+          "k4",
+          "k190",
+          "k324",
+          "k497",
+          "k585"
+        ],
+        "n_vehicles": 5,
+        "energy": 3185.558568733428,
+        "cost": 3081.0721999999996,
+        "missing_trips": [],
+        "double_trips": [],
+        "violated_conflicts": [],
+        "tight_minutes": 5.007680452822228,
+        "peak_kw_by_station": {
+          "TOTAL": 450.0
+        },
+        "peak_kw_total": 450.0
+      }
+    },
+    "qaoa": {
+      "n_qubits": 20,
+      "alpha": 0.2,
+      "optimum_energy": 3185.558568733428,
+      "uniform_p_optimal": 9.5367431640625e-07,
+      "uniform_p_feasible": 9.5367431640625e-07,
+      "layers": [
+        {
+          "p": 1,
+          "gammas": [
+            2.529266788818657
+          ],
+          "betas": [
+            2.7177610479076124
+          ],
+          "objective": -1.6684187496221103,
+          "expected_energy": 22872.189870390757,
+          "approx_ratio": 0.9107045531364233,
+          "p_optimal": 0.00010399234665902012,
+          "p_feasible": 0.00010399234665902012,
+          "amplification": 109.04387889032868,
+          "shots_for_optimum_95": 28806.0,
+          "evaluations": 499,
+          "seconds": 177.36706614494324,
+          "sampled": {
+            "shots": 100,
+            "best_raw_index": 267333,
+            "frac_feasible": 0.0,
+            "frac_optimal": 0.0,
+            "best_feasible_energy": null,
+            "found_optimum": false,
+            "best_after_repair": 3185.558568733428,
+            "optimum_after_repair": true,
+            "repaired_strings": 1,
+            "most_frequent_energy": 14691.747486248505,
+            "distinct_states": 100
+          },
+          "optimizer": "cobyla"
+        }
+      ],
+      "hamiltonian_scale": {
+        "mean": 55993.647115031396,
+        "std": 27124.15894074198
+      },
+      "best_raw_schedule": {
+        "feasible": false,
+        "columns": [
+          "k0",
+          "k4",
+          "k190",
+          "k324",
+          "k451",
+          "k585"
+        ],
+        "n_vehicles": 6,
+        "energy": 6339.626998205829,
+        "cost": 3573.0422,
+        "missing_trips": [
+          "39170892"
+        ],
+        "double_trips": [
+          "39170876"
+        ],
+        "violated_conflicts": [],
+        "tight_minutes": 5.007680452822228,
+        "peak_kw_by_station": {
+          "TOTAL": 300.0
+        },
+        "peak_kw_total": 300.0
+      }
+    }
+  },
+  "disruption_repair": {
+    "event": {
+      "bus": "k585",
+      "at": "07:00"
+    },
+    "qubits": 14,
+    "exact_repair": {
+      "extra_cost": 2089.319696161086,
+      "seconds": 0.018053531646728516,
+      "assignment": {
+        "39468704": "cancel",
+        "39171003": "R1",
+        "39170927": "R1",
+        "39170841": "R1"
+      }
+    },
+    "greedy": {
+      "extra_cost": 2162.9881922638456,
+      "seconds": 0.0010616779327392578
+    },
+    "simulated_annealing": {
+      "p_optimal": 0.35,
+      "best_energy": 2710.3994296906058,
+      "reads": 200,
+      "seconds": 0.17222929000854492
+    },
+    "xy_qaoa": {
+      "n_qubits": 14,
+      "subspace_size": 80,
+      "optimum_energy": 2710.3994296906067,
+      "n_optimal": 9,
+      "alpha": 0.2,
+      "layers": [
+        {
+          "p": 1,
+          "gammas": [
+            0.1
+          ],
+          "betas": [
+            2.4532741228718344
+          ],
+          "objective": -1.4155172974732915,
+          "expected_energy": 3102.67425142166,
+          "p_optimal": 0.2432783937663997,
+          "p_feasible": 1.0,
+          "amplification_subspace": 2.162474611256886,
+          "amplification_full": 442.8748003854103,
+          "shots_for_optimum_95": 11,
+          "evaluations": 92,
+          "seconds": 0.040877580642700195
+        }
+      ],
+      "hamiltonian_scale": {
+        "mean": 3752.142770634163,
+        "std": 735.94532741004
+      }
+    },
+    "penalty_qaoa": {
+      "p": 1,
+      "p_optimal": 0.019282476764622428,
+      "p_feasible": 0.15710506404260116
+    },
+    "backend_measurement": {
+      "backend": "local BasicSimulator",
+      "shots": 100,
+      "seconds": 0.02442169189453125,
+      "p_valid": 1.0,
+      "p_optimal": 0.16,
+      "counts": {
+        "00100010001001": 12,
+        "00001010001001": 2,
+        "01000000101001": 6,
+        "00100000100011": 9,
+        "01000010000011": 8,
+        "01000010000101": 3,
+        "00100000101001": 7,
+        "01000000100011": 7,
+        "01000010001001": 2,
+        "00001000101001": 3,
+        "00100000100101": 2,
+        "00010000101001": 2,
+        "00001010000011": 2,
+        "00001000100011": 7,
+        "01000001001001": 2,
+        "00010000100011": 3,
+        "01000000100101": 2,
+        "10000000101001": 1,
+        "00010001000011": 1,
+        "01000001000011": 1,
+        "00010010001001": 3,
+        "00100001001001": 3,
+        "00100010000011": 7,
+        "00010010000101": 1,
+        "00100001000011": 1,
+        "00001000100101": 2,
+        "00010001001001": 1
+      }
+    },
+    "best_measured_repair": {
+      "extra_cost": 2089.319696161086,
+      "feasible": true,
+      "assignment": {
+        "39468704": "cancel",
+        "39171003": "R1",
+        "39170927": "R1",
+        "39170841": "R1"
+      }
+    }
+  }
+}
