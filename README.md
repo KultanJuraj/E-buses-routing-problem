@@ -1,5 +1,9 @@
 # E-bus scheduling with quantum optimization (E-VSP)
 
+
+
+This effort is supported by Qollab & IonQ.
+
 Hybrid quantum-classical scheduling of battery-electric buses on real King County Metro
 data (route 150, Seattle). The project covers:
 
