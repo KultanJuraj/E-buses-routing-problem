@@ -3,11 +3,14 @@ import json
 import math
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+try:                                   # optional: browser runtimes (Pyodide on Qollab) may not ship jsonschema
+    from jsonschema import Draft202012Validator
+except ImportError:  # pragma: no cover
+    Draft202012Validator = None
 
 SCHEMA_VERSION = "1.0"
 _SCHEMA = json.loads(Path(__file__).with_name("instance.schema.json").read_text(encoding="utf-8"))
-_VALIDATOR = Draft202012Validator(_SCHEMA)
+_VALIDATOR = Draft202012Validator(_SCHEMA) if Draft202012Validator is not None else None
 
 
 def validate_instance(raw: dict) -> None:
@@ -30,7 +33,7 @@ def validate_instance(raw: dict) -> None:
                 finite(child, f"{path}[{index}]")
 
     finite(raw)
-    error = next(_VALIDATOR.iter_errors(raw), None)
+    error = next(_VALIDATOR.iter_errors(raw), None) if _VALIDATOR is not None else None
     if error:
         path = "$" + "".join(f"[{part!r}]" for part in error.absolute_path)
         fail(path, error.message)
