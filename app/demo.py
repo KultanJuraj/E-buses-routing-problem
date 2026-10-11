@@ -1,6 +1,6 @@
 """Interactive demo (package G): the optimal e-bus schedule and a live disruption repair.
 
-    pip install -r requirements.txt
+    pip install -r requirements-local.txt
     streamlit run app/demo.py
 
 Tab "Rozvrh": the 5-bus schedule of columns/kcm_small_b20_bat200.json (trips, charging,

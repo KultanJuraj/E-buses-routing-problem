@@ -33,6 +33,15 @@ except NameError:  # some browser runtimes execute main.py without __file__
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# Qollab discovers non-Python project files from literal open() paths.
+# Local runs from another directory still use the ROOT-based paths below.
+try:
+    open("evsp/instance.schema.json", encoding="utf-8").close()
+    open("columns/kcm_small_b20_bat200.json", encoding="utf-8").close()
+    open("instances/kcm_small.json", encoding="utf-8").close()
+except FileNotFoundError:
+    pass
+
 import numpy as np  # noqa: E402
 
 from evsp.classical_baselines import exact_repair, greedy_repair  # noqa: E402

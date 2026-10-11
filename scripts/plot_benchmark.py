@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # same colors as the demo app (evsp/viz.py); every series also has a legend label
 COLORS = [("XY", "#eb6834"), ("penalty", "#2a78d6"), ("simulated", "#7d7c76"),
-          ("random valid", "#1baf7a"), ("random bitstring", "#b5b4ae")]
+          ("random one-hot", "#1baf7a"), ("random bitstring", "#b5b4ae")]
 TEXT, TEXT_2, GRID = "#0b0b0b", "#52514e", "#e9e8e4"
 
 
@@ -33,7 +33,7 @@ def color(method: str) -> str:
 
 def short(method: str) -> str:
     return (method.replace("simulated annealing", "SA").replace("penalty QAOA, X mixer", "penalty QAOA")
-            .replace("XY-mixer QAOA", "XY-QAOA").replace("random valid assignment", "random valid"))
+            .replace("XY-mixer QAOA", "XY-QAOA").replace("random one-hot assignment", "random one-hot"))
 
 
 def _plt():

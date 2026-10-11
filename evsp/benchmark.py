@@ -14,7 +14,7 @@ counts as the cancel-all fallback), then compute exactly for a budget of N sampl
 
 Distributions: XY-mixer QAOA and penalty QAOA (X mixer, n <= 18) from the exact
 statevector, simulated annealing from `sa_reads` independent runs (empirical), and two
-random baselines (uniform over valid one-hot assignments, uniform over all bitstrings).
+random baselines (uniform over one-hot assignments, uniform over all bitstrings).
 """
 
 from __future__ import annotations
@@ -130,7 +130,7 @@ def sample_distributions(inst: Instance, rp: RepairProblem, p_max: int = 2, sa_r
     dists.append(_distribution(f"simulated annealing ({sa_sweeps} sweeps)", rc, counts / sa_reads, other / sa_reads,
                                seconds_per_sample=sa.seconds / sa_reads, info={"reads": sa_reads}))
 
-    dists.append(_distribution("random valid assignment", rc, np.full(space.size, 1.0 / space.size), 0.0))
+    dists.append(_distribution("random one-hot assignment", rc, np.full(space.size, 1.0 / space.size), 0.0))
     dists.append(_distribution("random bitstring", rc, np.full(space.size, 2.0 ** -n), float(1 - space.size * 2.0 ** -n)))
     return rc, dists
 

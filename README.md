@@ -5,7 +5,7 @@ data (route 150, Seattle). The project covers:
 
 - the daily schedule as a set-partitioning QUBO (variants E1–E4) solved with QAOA,
 - repair of the schedule after a bus failure or a charger outage with an XY-mixer QAOA
-  that never leaves the valid assignments,
+  that preserves one-hot assignments,
 - classical baselines on the same problems (min-cost flow, MILP, greedy dispatcher,
   exact repair, simulated annealing, tabu search),
 - a best-of-N solution-quality benchmark (QAOA vs simulated annealing),
@@ -34,7 +34,7 @@ the commands below. The tests do not need `results/`.
 Python 3.11 or newer (tested with 3.13 and 3.14). From the repository root:
 
 ```sh
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-local.txt
 python -m pytest -q          # 178 tests, about 1–2 min
 python main.py               # end-to-end repair run (Qollab entry point), about 5 s
 ```
@@ -46,7 +46,7 @@ earlier step. Times were measured on a 2-core cloud machine without a GPU.
 
 | step | command | writes | time |
 |---|---|---|---|
-| 0 | `python -m pip install -r requirements.txt` then `python -m pytest -q` | – | 1–2 min |
+| 0 | `python -m pip install -r requirements-local.txt` then `python -m pytest -q` | – | 1–2 min |
 | 1 *(optional)* | `python scripts/build_instances.py --source-revision <commit>` | `instances/*.json` | see [Rebuild from GTFS](#rebuild-from-gtfs) |
 | 2 | `python scripts/validate_instances.py` | `instances/baseline_validation.json` | < 1 s |
 | 3 *(optional)* | `python scripts/build_columns.py --instance instances/kcm_tiny.json --budget 20`<br>`python scripts/build_columns.py --instance instances/kcm_small.json --budget 20 --battery 200` | `columns/kcm_tiny_b20.json`, `columns/kcm_small_b20_bat200.json` | < 1 s each |
@@ -59,7 +59,7 @@ earlier step. Times were measured on a 2-core cloud machine without a GPU.
 | 8 | `python scripts/run_benchmark.py` | `results/quality_benchmark.{json,csv}` + 3 PNG charts | ~20 s |
 | 9 | `python scripts/make_figures.py` | `figures/*.html` | ~5 s |
 | 10 | `streamlit run app/demo.py` | – (browser) | – |
-| 11 | `python tools/package_qollab.py` | `dist/qollab/`, `dist/qollab.zip` | < 1 s |
+| 11 | Upload `main.py`, `evsp/`, `instances/`, `columns/`, and `requirements.txt` to Qollab | – | – |
 
 Notes on the steps:
 
@@ -117,10 +117,9 @@ python main.py --shots 2000 --p 2
 
 Without an injected `backend`, `main.py` falls back to Qiskit's `BasicSimulator`.
 
-To upload, run `python tools/package_qollab.py`. It copies only what `main.py` needs into
-`dist/qollab.zip` (19 files, about 233 KB; Qollab allows at most 100 files of up to 2 MB
-each). `QOLLAB.md` is the project page text and `requirements-qollab.txt` lists the
-runtime dependencies.
+For Qollab, upload `main.py`, `evsp/`, `instances/`, `columns/`, and `requirements.txt`.
+Qollab reads the root `requirements.txt`, which lists only unpinned runtime dependencies;
+use `requirements-local.txt` for the pinned local setup.
 
 ## QUBO builder (work package C)
 
@@ -142,7 +141,7 @@ check the exact ground state, and selects the feasible setting with the lowest
 grid peak (then cost). It is limited to 20 selected duties. The command validates
 an exact ground state before exporting and stops if it is infeasible; over 26
 variables it warns and exports without an exact check. Qiskit is pinned in
-`requirements.txt`; `qiskit-optimization` and `dimod` are optional imports needed
+`requirements-local.txt`; `qiskit-optimization` and `dimod` are optional imports needed
 only for their corresponding conversion methods.
 
 QAOA supports `--optimizer cobyla` (default) and `--optimizer spsa`. To compare
@@ -269,8 +268,8 @@ cheapest. `evsp/benchmark.py` works this out as follows:
 2. For each method it builds the cost distribution of one sample:
    - XY-mixer QAOA and penalty QAOA from the exact statevector,
    - simulated annealing from independent runs,
-   - two random baselines (uniform over valid assignments, uniform over all bitstrings).
-3. It computes exactly, without Monte Carlo noise:
+   - two random baselines (uniform over one-hot assignments, uniform over all bitstrings).
+3. Given each distribution, it computes:
    - P(the best of N samples is the true optimum) = 1 − (1 − p_opt)^N,
    - the expected cost of the best of N samples, from P(min ≥ v) = P(X ≥ v)^N.
 
@@ -291,11 +290,13 @@ XY-QAOA (p = 2) vs simulated annealing (500 sweeps):
 | S3 out 07:00–09:00 | 21 | 0.35 vs 0.16 | 0.73 vs 0.41 | 0.99 vs 0.83 |
 | k585 fails 05:00 | 22 | 0.22 vs 0.04 | 0.52 vs 0.11 | 0.91 vs 0.33 |
 
-- XY-QAOA needs fewer samples in 4 of 5 events, and the gap grows with the problem size.
+- XY-QAOA needs fewer samples in 4 of these 5 events.
 - Penalty QAOA (n ≤ 18) is far behind both.
 - How to read this:
-  - One QAOA sample is one circuit shot. One SA sample is a full annealing run, which
-    costs much more classically.
+  - One QAOA sample is one circuit shot; one SA sample is a full annealing run.
+    Sample counts are not a comparison of total runtime.
+  - SA probabilities are estimated from 2,000 runs with one seed, so the best-of-N
+    figures and 95 % sample counts have sampling uncertainty.
   - QAOA is simulated without noise, and its angle optimization is not counted.
   - On these sizes, the exact optimum by full replay takes under a second.
 
@@ -348,7 +349,7 @@ Use Python 3.11 or newer; the pinned dependencies were tested with Python 3.13 a
 From the repository root, using the project's configured interpreter:
 
 ```sh
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-local.txt
 python -m pytest -q
 python scripts/validate_instances.py
 ```

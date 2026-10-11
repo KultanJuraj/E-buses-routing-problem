@@ -55,7 +55,7 @@ def test_true_costs_and_distributions(event):
     for d in dists:
         assert d.probs.sum() == pytest.approx(1.0) and 0 <= d.p_optimal <= d.p_valid <= 1 + 1e-9
     xy = dists[0]
-    assert xy.p_valid == pytest.approx(1.0)                     # never leaves the valid assignments
+    assert xy.p_valid == pytest.approx(1.0)                     # every one-hot state replays for this event
     pen = next(d for d in dists if d.method.startswith("penalty"))
     assert xy.p_valid > pen.p_valid and xy.p_optimal > pen.p_optimal
 

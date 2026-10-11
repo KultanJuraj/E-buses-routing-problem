@@ -1,15 +1,5 @@
-numpy==2.4.2
-pandas==2.3.3
-jsonschema==4.26.0
-scipy==1.17.0
-pytest==9.0.3
-qiskit==2.3.0
-qiskit-optimization==0.7.0
-dimod==0.12.22
-# Optional: noisy QAOA sampling (scripts/run_qaoa.py --noise)
-qiskit-aer==0.17.2
-# Demo and figures (package G): streamlit run app/demo.py, scripts/make_figures.py
-plotly==7.1.0
-streamlit==1.65.0
-# Optional: PNG export in make_figures.py --png (needs Chrome/Chromium)
-kaleido==1.5.0
+# Qollab loads this file in its browser runtime. Keep preinstalled packages unpinned.
+qiskit
+numpy
+scipy
+matplotlib
