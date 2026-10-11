@@ -1,4 +1,4 @@
-# E-bus routing: quantum-hybrid scheduling of electric buses
+# Single-Depot Vehicle Scheduling Problem (VSP) for Electric Buses
 
 Project documentation for the Qollab × IonQ quantum hackathon (October 9–11, 2026).
 Repository: `github.com/KultanJuraj/E-buses-routing-problem` · License: MIT ·
