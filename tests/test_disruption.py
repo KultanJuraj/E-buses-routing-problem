@@ -1,6 +1,5 @@
 from pathlib import Path
 import json
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -274,17 +273,25 @@ def test_stranded_bus_keeps_the_trips_it_already_drove(setup):
     assert set(rp.trips) >= {t for t in sched.duties["k4"].trips if tb[t].dep_min >= ev.at_min}
 
 
-def test_precomputed_result_checks_the_actual_problem(setup, demo):
+def test_precomputed_result_checks_the_actual_problem(setup, demo, tmp_path):
+    """results/ is not versioned, so the test writes its own file in the format of scripts/run_repair.py."""
     from evsp.demo import _precomputed_penalty
 
     _, sched = setup
     event = Disruption.bus_failure(sched, "k4", 6 * 60)
-    result = ROOT / "results" / "repair_bus_k4_0600.json"
-    raw = json.loads(result.read_text(encoding="utf-8"))
-    assert _precomputed_penalty(event, demo, result)[0]
+    raw = {"event": event.__dict__, "trips": demo.trips, "n_qubits": demo.n, "subspace_size": demo.subspace_size,
+           "options": [o.__dict__ for o in demo.options], "conflicts": demo.conflicts,
+           "penalty_qaoa": {"layers": [{"p": 1, "p_optimal": 0.01, "p_feasible": 0.2},
+                                       {"p": 2, "p_optimal": 0.03, "p_feasible": 0.3}]}}
+    result = tmp_path / "repair_bus_k4_0600.json"
+    result.write_text(json.dumps(raw, default=float), encoding="utf-8")
+    row, source = _precomputed_penalty(event, demo, result)
+    assert row["p"] == 2 and row["p_optimal"] == 0.03 and "precomputed" in source
+
     raw["conflicts"] = [[9, 14]]
-    with patch.object(Path, "read_text", return_value=json.dumps(raw)):
-        assert _precomputed_penalty(event, demo, result)[0] is None
+    result.write_text(json.dumps(raw, default=float), encoding="utf-8")
+    assert _precomputed_penalty(event, demo, result)[0] is None
+    assert _precomputed_penalty(event, demo, tmp_path / "missing.json")[0] is None
 
 
 def test_soc_includes_charging_after_the_last_trip(setup, demo):
