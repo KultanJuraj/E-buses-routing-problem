@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from dataclasses import dataclass, field
@@ -17,7 +18,7 @@ from typing import Optional
 import numpy as np
 
 from . import load_instance
-from .columns import Column, ColumnSet, load_columns
+from .columns import Column, ColumnSet, check_schedule, load_columns
 from .disruption import (Disruption, RepairPlan, RepairProblem, Schedule, apply_assignment, build_repair_problem,
                          cancel_all_assignment)
 from .qaoa import circuit_metrics, run_qaoa, shots_for_confidence
@@ -28,6 +29,7 @@ from .xy_qaoa import XYQAOA, OneHotSpace, best_valid_state, run_xy_qaoa, xy_qaoa
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_COLUMNS = ROOT / "columns" / "kcm_small_b20_bat200.json"
 DEFAULT_INSTANCE = ROOT / "instances" / "kcm_small.json"
+DEFAULT_QAOA_SCHEDULE = ROOT / "app" / "qaoa_schedule.json"
 
 
 @dataclass
@@ -43,6 +45,27 @@ def load_demo_data(columns: Path = DEFAULT_COLUMNS, instance: Path = DEFAULT_INS
     inst = load_instance(instance)
     inst.assumptions.update(cs.assumptions)          # same battery / costs as the columns
     return DemoData(inst=inst, cs=cs, schedule=Schedule.from_columns(cs), columns_path=Path(columns))
+
+
+def saved_qaoa_schedule(data: DemoData, path: Path = DEFAULT_QAOA_SCHEDULE) -> tuple[Schedule, dict] | None:
+    """Load the bundled QAOA sample only when it matches this exact duty pool."""
+    if not path.exists():
+        return None
+    sample = json.loads(path.read_text(encoding="utf-8"))
+    digest = hashlib.sha256(data.columns_path.read_bytes()).hexdigest()
+    if sample["columns"] != data.columns_path.name or sample["columns_sha256"] != digest:
+        return None
+    if sample["variant"] != "E4" or sample["R"] != 1.0:
+        raise ValueError("unsupported saved QAOA schedule")
+    state = sample["best_raw_index"]
+    if not 0 <= state < 1 << len(data.cs.columns):
+        raise ValueError("saved QAOA state has the wrong number of bits")
+    x = np.array([(state >> k) & 1 for k in range(len(data.cs.columns))], dtype=int)
+    indices = list(np.flatnonzero(x))
+    q = build_qubo(data.cs, variant_weights("E4", data.cs.assumptions, R=sample["R"]))
+    if not q.evaluate(x)["feasible"] or not check_schedule(data.cs, indices)["ok"]:
+        raise ValueError("saved QAOA schedule is infeasible for the current duty pool")
+    return Schedule.from_columns(data.cs, indices), sample
 
 
 def peak_schedules(data: DemoData) -> dict[str, dict[str, Column]]:

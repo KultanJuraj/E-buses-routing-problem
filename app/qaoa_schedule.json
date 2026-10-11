@@ -1,0 +1,13 @@
+{
+  "columns": "kcm_small_b20_bat200.json",
+  "columns_sha256": "f5c55d9f501c817bd8a2aa3ad37c82a7d6fc86a660bbfca7408b8c697c84fc45",
+  "variant": "E4",
+  "R": 1.0,
+  "p": 2,
+  "seed": 0,
+  "shots": 10000,
+  "best_raw_index": 296004,
+  "observed_feasible_shots": 2,
+  "p_feasible_statevector": 0.00022116363768197498,
+  "source": "results/kcm_small_b20_bat200_E4_peak_comparison.json, R>0, qaoa.layers[1].sampled"
+}

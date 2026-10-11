@@ -308,22 +308,27 @@ python scripts/make_figures.py --bus k585 --at 07:00 --png
 python scripts/make_figures.py --charger S3 --from 07:00 --to 09:00
 ```
 
-The demo loads the 5-bus optimum of `columns/kcm_small_b20_bat200.json` on
-`instances/kcm_small.json`:
+The demo loads `columns/kcm_small_b20_bat200.json` on `instances/kcm_small.json`.
+The Schedule tab defaults to the feasible QAOA sample saved in `app/qaoa_schedule.json`
+(ideal statevector, E4 with R=1, p=2, seed 0, 10,000 shots). The saved state is checked
+against the duty-pool file and validated as a feasible schedule; a different duty pool shows
+the MILP reference. On the bundled pool, QAOA and MILP select the same five duties
+because it contains only one feasible complete schedule.
 
-- **Rozvrh**: Gantt chart (trips, deadhead transfers, charging with station),
+- **Schedule**: choose the QAOA sample or MILP reference for the Gantt chart
+  (trips, deadhead transfers, charging with station),
   battery SoC of every bus with the minimum-SoC line, grid power per 15 min
   stacked by station, an exact E4 grid-power comparison for R=0 and R=1,
   and a duty table. The included 20-column pool has only one feasible schedule,
   so both R curves coincide on this instance.
-- **Výpadok**: choose a failed bus and time (or a charger and outage window) and
-  press *Pokaz autobus*. `evsp.demo.solve_disruption` builds the repair problem
+- **Disruption**: choose a failed bus and time (or a charger and outage window) and
+  press *Break the bus*. `evsp.demo.solve_disruption` builds the repair problem
   from package F, finds the exact optimum, and runs simulated annealing,
   XY-mixer QAOA and penalty QAOA with the X mixer. The page shows the
   before/after schedules (moved trips orange, cancelled trips red with hatching
   and a label), the cost change, P(optimum) and P(feasible) per method, shots for
   95 % confidence and the XY circuit size (all-to-all and heavy-hex).
-- **Škálovanie**: penalty QAOA vs SA vs random guessing from
+- **Scaling**: penalty QAOA vs SA vs random guessing from
   `results/*_scaling.json` (pipeline step 6c). Without that file, the tab shows the
   command that creates it.
 
