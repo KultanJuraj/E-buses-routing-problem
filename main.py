@@ -40,6 +40,12 @@ except NameError:  # some browser runtimes execute main.py without __file__
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# Qollab discovers data files only from literal open("path") references. Keep these
+# before importing evsp: validation loads the schema during the package import.
+open("evsp/instance.schema.json").close()
+open("columns/kcm_small_b20_bat200.json").close()
+open("instances/kcm_small.json").close()
+
 import numpy as np  # noqa: E402
 
 from evsp.classical_baselines import exact_repair, greedy_repair  # noqa: E402
