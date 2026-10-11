@@ -3,11 +3,11 @@
     pip install -r requirements.txt
     streamlit run app/demo.py
 
-Tab "Rozvrh": the 5-bus schedule of columns/kcm_small_b20_bat200.json (trips, charging,
-battery, grid load). Tab "Výpadok": pick a bus and a time (or a charger and a window),
-press "Pokaz autobus" and the repair subproblem is solved exactly, with simulated
+Tab "Schedule": the 5-bus schedule of columns/kcm_small_b20_bat200.json (trips, charging,
+battery, grid load). Tab "Disruption": pick a bus and a time (or a charger and a window),
+press "Break the bus" and the repair subproblem is solved exactly, with simulated
 annealing, with XY-mixer QAOA and (up to 16 qubits, or from results/) with penalty QAOA.
-Tab "Škálovanie": penalty QAOA on growing E-VSP instances (results/*_scaling.json).
+Tab "Scaling": penalty QAOA on growing E-VSP instances (results/*_scaling.json).
 """
 
 from __future__ import annotations
@@ -25,23 +25,28 @@ import streamlit as st  # noqa: E402
 
 from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, peak_schedules, solve_disruption  # noqa: E402
 from evsp.disruption import Disruption  # noqa: E402
-from evsp.viz import (describe_sk, gantt_figure, hhmm, method_figure, peak_comparison_figure, power_figure, scaling_figure,  # noqa: E402
-                      schedule_kpis, soc_figure)
+from evsp.viz import (describe_event, gantt_figure, hhmm, method_figure, peak_comparison_figure, power_figure,  # noqa: E402
+                      scaling_figure, schedule_kpis, soc_figure)
 
-st.set_page_config(page_title="E-bus rozvrh a kvantová oprava", layout="wide")
+st.set_page_config(page_title="E-bus schedule and quantum repair", layout="wide")
 
 
-@st.cache_resource(show_spinner="Načítavam inštanciu a turnusy…")
+def chart(fig, key: str, where=st):
+    # theme=None keeps the figure's own validated colors (Streamlit's theme would restyle them)
+    where.plotly_chart(fig, key=key, theme=None)
+
+
+@st.cache_resource(show_spinner="Loading the instance and duties…")
 def data(columns: str, instance: str):
     return load_demo_data(Path(columns), Path(instance))
 
 
-@st.cache_resource(show_spinner="Porovnávam optimá pre R=0 a R>0…")
+@st.cache_resource(show_spinner="Comparing the optima for R=0 and R>0…")
 def peak_data(columns: str, instance: str):
     return peak_schedules(data(columns, instance))
 
 
-@st.cache_resource(show_spinner="Riešim opravu rozvrhu (presne, SA, XY-QAOA, QAOA s pokutami)…")
+@st.cache_resource(show_spinner="Repairing the schedule (exact, SA, XY-QAOA, penalty QAOA)…")
 def repair(columns: str, instance: str, kind: str, who: str, a: int, b: int, reserves: int, options: int,
            p_max: int, penalty: str):
     d = data(columns, instance)
@@ -52,18 +57,18 @@ def repair(columns: str, instance: str, kind: str, who: str, a: int, b: int, res
 def schedule_table(inst, duties) -> pd.DataFrame:
     rows = []
     for bus, c in sorted(duties.items(), key=lambda kv: kv[1].start_min):
-        rows.append({"autobus": bus, "výjazd": hhmm(c.start_min), "návrat": hhmm(c.end_min), "spoje": c.n_trips,
-                     "nabíjania": ", ".join(f"{ch.station} {hhmm(ch.start_min)}-{hhmm(ch.end_min)}"
-                                            for ch in c.charges) or "-",
-                     "prázdne km": round(c.deadhead_km, 1), "min SoC": f"{c.min_soc:.0%}",
-                     "SoC na konci": f"{c.final_soc:.0%}", "náklad": round(c.cost, 1)})
+        rows.append({"bus": bus, "pull-out": hhmm(c.start_min), "pull-in": hhmm(c.end_min), "trips": c.n_trips,
+                     "charging": ", ".join(f"{ch.station} {hhmm(ch.start_min)}-{hhmm(ch.end_min)}"
+                                           for ch in c.charges) or "-",
+                     "deadhead km": round(c.deadhead_km, 1), "min SoC": f"{c.min_soc:.0%}",
+                     "final SoC": f"{c.final_soc:.0%}", "cost": round(c.cost, 1)})
     return pd.DataFrame(rows)
 
 
 def kpi_row(k: dict, ref: dict | None = None):
     cols = st.columns(5)
-    items = [("autobusy", "buses", "{:.0f}"), ("spoje", "trips", "{:.0f}"), ("prázdne km", "deadhead_km", "{:.0f}"),
-             ("špička nabíjania [kW]", "peak_kw", "{:.0f}"), ("náklad", "cost", "{:.0f}")]
+    items = [("buses", "buses", "{:.0f}"), ("trips", "trips", "{:.0f}"), ("deadhead km", "deadhead_km", "{:.0f}"),
+             ("charging peak [kW]", "peak_kw", "{:.0f}"), ("cost", "cost", "{:.0f}")]
     for c, (label, key, fmt) in zip(cols, items):
         delta = None if ref is None else fmt.format(k[key] - ref[key])
         c.metric(label, fmt.format(k[key]), delta=delta, delta_color="inverse", border=True)
@@ -71,124 +76,127 @@ def kpi_row(k: dict, ref: dict | None = None):
 
 # --------------------------------------------------------------------------- sidebar
 with st.sidebar:
-    st.header("Dáta")
-    columns = st.text_input("turnusy (columns JSON)", str(DEFAULT_COLUMNS.relative_to(ROOT)))
-    instance = st.text_input("inštancia", str(DEFAULT_INSTANCE.relative_to(ROOT)))
+    st.header("Data")
+    columns = st.text_input("duties (columns JSON)", str(DEFAULT_COLUMNS.relative_to(ROOT)))
+    instance = st.text_input("instance", str(DEFAULT_INSTANCE.relative_to(ROOT)))
     columns_path, instance_path = str(ROOT / columns), str(ROOT / instance)
     if not Path(columns_path).exists() or not Path(instance_path).exists():
-        st.error("Súbor neexistuje. Spusti scripts/build_instances.py a scripts/build_columns.py --battery 200.")
+        st.error("File not found. Run scripts/build_instances.py and scripts/build_columns.py --battery 200.")
         st.stop()
     d = data(columns_path, instance_path)
     a = d.inst.assumptions
-    st.caption(f"{len(d.inst.trips)} spojov, {len(d.cs.columns)} turnusov v pule, batéria {a['battery_kwh']:.0f} kWh, "
+    st.caption(f"{len(d.inst.trips)} trips, {len(d.cs.columns)} duties in the pool, battery {a['battery_kwh']:.0f} kWh, "
                f"min SoC {a['soc_min']:.0%}")
 
-st.title("Elektrobusy: rozvrh a oprava po výpadku")
-tab_plan, tab_fail, tab_scale = st.tabs(["Rozvrh", "Výpadok", "Škálovanie"])
+st.title("Electric buses: schedule and repair after a disruption")
+tab_plan, tab_fail, tab_scale = st.tabs(["Schedule", "Disruption", "Scaling"])
 
 # --------------------------------------------------------------------------- schedule
 with tab_plan:
     duties = d.schedule.duties
     kpi_row(schedule_kpis(duties))
-    st.plotly_chart(gantt_figure(d.inst, duties, title="Optimálny rozvrh (QUBO E4 / MILP)"), key="g0")
+    chart(gantt_figure(d.inst, duties, title="Optimal schedule (QUBO E4 / MILP)"), "g0")
     left, right = st.columns(2)
-    left.plotly_chart(soc_figure(d.inst, duties), key="soc0")
-    right.plotly_chart(power_figure(duties), key="pow0")
+    chart(soc_figure(d.inst, duties), "soc0", left)
+    chart(power_figure(duties), "pow0", right)
     peaks = peak_data(columns_path, instance_path)
-    st.plotly_chart(peak_comparison_figure(peaks), key="peak_compare")
+    chart(peak_comparison_figure(peaks), "peak_compare")
     if set(peaks["R=0"]) == set(peaks["R>0"]):
-        st.caption("Pri tomto pule turnusov vychádza rovnaký rozvrh pre R=0 aj R>0; "
-                   "pri zvolenej váhe špička neklesá.")
+        st.caption("This duty pool gives the same schedule for R=0 and R>0; "
+                   "the peak does not drop at the chosen weight.")
     st.dataframe(schedule_table(d.inst, duties), hide_index=True)
 
 # --------------------------------------------------------------------------- disruption
 with tab_fail:
     stations = sorted({ch.station for c in d.schedule.duties.values() for ch in c.charges})
     c1, c2, c3 = st.columns([1.2, 2, 1.4])
-    kind = c1.radio("udalosť", ["porucha autobusu", "výpadok nabíjačky"], key="kind")
+    kind = c1.radio("event", ["bus failure", "charger outage"], key="kind")
     times = list(range(5 * 60, 22 * 60 + 1, 15))
-    if kind == "porucha autobusu":
+    if kind == "bus failure":
         buses = sorted(d.schedule.duties, key=lambda b: d.schedule.duties[b].start_min)
-        who = c2.selectbox("autobus", buses, index=buses.index("k4") if "k4" in buses else 0)
-        at = c2.select_slider("čas poruchy", times, value=6 * 60, format_func=hhmm)
+        who = c2.selectbox("bus", buses, index=buses.index("k4") if "k4" in buses else 0)
+        at = c2.select_slider("failure time", times, value=6 * 60, format_func=hhmm)
         ev_args = ("bus", who, at, at)
     else:
-        who = c2.selectbox("stanica", stations, index=stations.index("S3") if "S3" in stations else 0)
-        a_, b_ = c2.select_slider("okno výpadku", times, value=(7 * 60, 9 * 60), format_func=hhmm)
+        who = c2.selectbox("station", stations, index=stations.index("S3") if "S3" in stations else 0)
+        a_, b_ = c2.select_slider("outage window", times, value=(7 * 60, 9 * 60), format_func=hhmm)
         ev_args = ("charger", who, a_, b_)
-    reserves = c3.slider("záložné autobusy", 0, 3, 3)
-    options = c3.slider("iné autobusy na spoj", 1, 3, 3)
-    p_max = c3.slider("hĺbka QAOA p", 1, 3, 3)
-    penalty = "auto" if c3.checkbox("porovnať s QAOA s pokutami", value=True) else "never"
+    reserves = c3.slider("reserve buses", 0, 3, 3)
+    options = c3.slider("other buses per trip", 1, 3, 3)
+    p_max = c3.slider("QAOA depth p", 1, 3, 3)
+    penalty = "auto" if c3.checkbox("compare with penalty QAOA", value=True) else "never"
 
-    label = "Pokaz autobus" if kind == "porucha autobusu" else "Vypni nabíjačku"
+    label = "Break the bus" if kind == "bus failure" else "Switch off the charger"
     if st.button(label, type="primary", icon="⚡", key="go"):
         st.session_state["event"] = (*ev_args, reserves, options, p_max, penalty)
     ev = st.session_state.get("event")
     if ev is None:
-        st.info(f"Vyber udalosť a stlač **{label}**.")
+        st.info(f"Choose an event and press **{label}**.")
     else:
         try:
             rep = repair(columns_path, instance_path, *ev)
         except ValueError as e:
             if "no trips are affected" in str(e):
-                st.info("Žiadny spoj nie je ohrozený: autobus už nemá ďalšie spoje, alebo stačí presmerovať "
-                        "nabíjanie na inú stanicu.")
+                st.info("No trip is affected: the bus has no more trips, or its charging can simply move "
+                        "to another station.")
             else:
-                st.warning(f"Túto udalosť sa nedá riešiť naživo: {e}")
+                st.warning(f"This event cannot be solved live: {e}")
             st.stop()
         e = rep.event
-        st.subheader(describe_sk(e))
-        st.write(f"**{len(rep.problem.trips)} ohrozených spojov → {rep.problem.n} qubitov**, "
-                 f"{rep.space.size:,} prípustných one-hot priradení z 2^{rep.problem.n} = "
-                 f"{2 ** rep.problem.n:,} bitových reťazcov.".replace(",", " "))
+        st.subheader(describe_event(e))
+        st.write(f"**{len(rep.problem.trips)} affected trips → {rep.problem.n} qubits**, "
+                 f"{rep.space.size:,} valid one-hot assignments out of 2^{rep.problem.n} = "
+                 f"{2 ** rep.problem.n:,} bitstrings.")
         kpi_row(schedule_kpis(rep.after), schedule_kpis(rep.before))
         failed = {e.bus: e.at_min} if e.kind == "bus" else None
         outage = (e.station, e.at_min, e.until_min) if e.kind == "charger" else None
         left, right = st.columns(2)
-        left.plotly_chart(gantt_figure(d.inst, rep.before, title="Pred udalosťou", failed=failed, outage=outage),
-                          key="gb")
-        right.plotly_chart(gantt_figure(d.inst, rep.after, title="Po oprave (optimum)", failed=failed,
-                                        moved=rep.moved, cancelled=rep.cancelled, outage=outage), key="ga")
-        moved = ", ".join(f"{t} → {b}" for t, b in rep.moved.items()) or "nič"
-        st.write(f"Presunuté spoje: {moved}. Zrušené: {', '.join(rep.cancelled) or 'žiadne'}. "
-                 f"Dodatočný náklad {rep.plan.extra_cost:.0f}.")
+        chart(gantt_figure(d.inst, rep.before, title="Before the event", failed=failed, outage=outage), "gb", left)
+        chart(gantt_figure(d.inst, rep.after, title="After the repair (optimum)", failed=failed,
+                           moved=rep.moved, cancelled=rep.cancelled, outage=outage), "ga", right)
+        moved = ", ".join(f"{t} → {b}" for t, b in rep.moved.items()) or "none"
+        st.write(f"Reassigned trips: {moved}. Cancelled: {', '.join(rep.cancelled) or 'none'}. "
+                 f"Extra cost {rep.plan.extra_cost:.0f}.")
         if rep.valid_rank is None:
-            st.warning("Žiadne lacné priradenie neprešlo úplnou kontrolou rozvrhu: použité je zrušenie všetkých "
-                       "ohrozených spojov.")
+            st.warning("No cheap assignment passed the full schedule check: all affected trips are cancelled "
+                       "as the fallback.")
         elif rep.valid_rank:
-            st.caption(f"{rep.valid_rank} najlacnejších priradení párového modelu neprešlo úplnou kontrolou.")
-        verdict = "je optimálna oprava" if rep.xy_is_optimal else \
-            f"nie je optimum (náklad {rep.xy_plan.extra_cost:.0f})"
+            st.caption(f"The {rep.valid_rank} cheapest assignments of the pairwise model failed the full check.")
+        verdict = "is the optimal repair" if rep.xy_is_optimal else \
+            f"is not the optimum (cost {rep.xy_plan.extra_cost:.0f})"
         if rep.xy_is_optimal:
-            st.success(f"Najčastejšia odpoveď XY-QAOA {verdict}.")
+            st.success(f"The most likely XY-QAOA answer {verdict}.")
         else:
-            st.warning(f"Najčastejšia odpoveď XY-QAOA {verdict}.")
+            st.warning(f"The most likely XY-QAOA answer {verdict}.")
 
-        st.plotly_chart(method_figure(rep.rows), key="m")
-        table = pd.DataFrame([{"metóda": r["method"], "p": r["p"],
-                               "P(optimum)": None if r["p_optimal"] is None else round(r["p_optimal"], 4),
-                               "P(prípustné)": None if r["p_feasible"] is None else round(r["p_feasible"], 3),
-                               "meraní na 95 %": None if r["shots_95"] is None else round(r["shots_95"])}
+        chart(method_figure(rep.rows), "m")
+        def cell(v, fmt):
+            return "–" if v is None else fmt.format(v)
+
+        table = pd.DataFrame([{"method": r["method"], "p": cell(r["p"], "{}"),
+                               "P(optimum)": cell(r["p_optimal"], "{:.4f}"),
+                               "P(valid)": cell(r["p_feasible"], "{:.3f}"),
+                               "shots for 95 %": cell(r["shots_95"], "{:.0f}")}
                               for r in rep.rows])
         st.dataframe(table, hide_index=True)
-        notes = {"computed": "QAOA s pokutami spočítané naživo.", "skipped": "QAOA s pokutami vypnuté."}
-        st.caption(notes.get(rep.penalty_source, f"QAOA s pokutami: {rep.penalty_source}.")
-                   + " P(optimum) simulated annealing = podiel z 200 behov; QAOA = presná pravdepodobnosť "
-                     "zo stavového vektora.")
+        notes = {"computed": "Penalty QAOA computed live.", "skipped": "Penalty QAOA switched off."}
+        st.caption(notes.get(rep.penalty_source, f"Penalty QAOA: {rep.penalty_source}.")
+                   + " P(optimum) of simulated annealing = share of 200 runs; QAOA = exact probability "
+                     "from the statevector.")
         ca, ch = rep.circuits["xy_all"], rep.circuits["xy_heavy_hex"]
-        st.caption(f"XY-QAOA obvod: {ca['qubits']} qubitov, hĺbka {ca['depth']}, {ca['cx']} CX "
-                   f"(všetko-so-všetkým); heavy-hex: {ch['physical_qubits']} fyzických qubitov, hĺbka {ch['depth']}, "
-                   f"{ch['cx']} CX. Čas: " + ", ".join(f"{k} {v:.1f}s" for k, v in rep.seconds.items()))
+        st.caption(f"XY-QAOA circuit: {ca['qubits']} qubits, depth {ca['depth']}, {ca['cx']} CX "
+                   f"(all-to-all); heavy-hex: {ch['physical_qubits']} physical qubits, depth {ch['depth']}, "
+                   f"{ch['cx']} CX. Time: " + ", ".join(f"{k} {v:.1f}s" for k, v in rep.seconds.items()))
 
 # --------------------------------------------------------------------------- scaling
 with tab_scale:
     files = sorted((ROOT / "results").glob("*_scaling.json"))
     if not files:
-        st.info("Žiadne výsledky škálovania. Spusti napr.\n\n"
+        st.info("No scaling results yet. Run for example\n\n"
                 "`python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E2 --scaling 8,10,12,16`")
     else:
-        f = st.selectbox("súbor", files, format_func=lambda p: p.name)
+        f = st.selectbox("file", files, format_func=lambda p: p.name)
         rows = json.loads(f.read_text(encoding="utf-8"))["scaling"]
-        st.plotly_chart(scaling_figure(rows), key="sc")
-        st.dataframe(pd.DataFrame(rows), hide_index=True)
+        chart(scaling_figure(rows), "sc")
+        flat = pd.DataFrame([{k: v for k, v in r.items() if not isinstance(v, (dict, list))} for r in rows])
+        st.dataframe(flat, hide_index=True)

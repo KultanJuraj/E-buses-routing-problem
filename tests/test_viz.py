@@ -6,7 +6,7 @@ pytest.importorskip("plotly")
 
 from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, solve_disruption  # noqa: E402
 from evsp.disruption import Disruption  # noqa: E402
-from evsp.viz import (describe_sk, gantt_figure, hhmm, method_figure, power_figure, scaling_figure,  # noqa: E402
+from evsp.viz import (describe_event, gantt_figure, hhmm, method_figure, power_figure, scaling_figure,  # noqa: E402
                       schedule_kpis, soc_figure, soc_timeline)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,14 +48,14 @@ def test_schedule_figures(data):
     duties = data.schedule.duties
     g = gantt_figure(data.inst, duties)
     names = {tr.name for tr in g.data}
-    assert {"spoj", "nabíjanie", "prázdny presun"} <= names
-    n_trips = sum(1 for tr in g.data if tr.name == "spoj")
+    assert {"trip", "charging", "deadhead"} <= names
+    n_trips = sum(1 for tr in g.data if tr.name == "trip")
     assert n_trips == len(data.inst.trips)
     assert len(soc_figure(data.inst, duties).data) == len(duties)
     p = power_figure(duties)
     assert {tr.name for tr in p.data} == {ch.station for c in duties.values() for ch in c.charges}
-    assert any("špička" in a.text for a in p.layout.annotations)
-    assert power_figure({}).layout.annotations[0].text.startswith("žiadne")
+    assert any("peak" in a.text for a in p.layout.annotations)
+    assert power_figure({}).layout.annotations[0].text.startswith("no charging")
 
 
 def test_repair_report(data, report):
@@ -71,8 +71,8 @@ def test_repair_report(data, report):
     assert len(driven) == len(set(driven))
     assert set(driven) | set(report.cancelled) == {t.id for t in data.inst.trips}
     rows = {r["method"]: r for r in report.rows}
-    assert rows["QAOA, XY mixer"]["p_feasible"] > rows["QAOA, X mixer + pokuty"]["p_feasible"]
-    assert rows["QAOA, XY mixer"]["p_optimal"] > rows["QAOA, X mixer + pokuty"]["p_optimal"]
+    assert rows["QAOA, XY mixer"]["p_feasible"] > rows["QAOA, X mixer + penalties"]["p_feasible"]
+    assert rows["QAOA, XY mixer"]["p_optimal"] > rows["QAOA, X mixer + penalties"]["p_optimal"]
 
 
 def test_repair_figures(data, report):
@@ -80,12 +80,12 @@ def test_repair_figures(data, report):
     g = gantt_figure(data.inst, report.after, failed={ev.bus: ev.at_min}, moved=report.moved,
                      cancelled=report.cancelled)
     names = [tr.name for tr in g.data]
-    assert "výpadok" in names
-    assert names.count("presunutý spoj") == len(report.moved)
-    assert names.count("zrušený spoj") == len(report.cancelled)
+    assert "failure" in names
+    assert names.count("reassigned trip") == len(report.moved)
+    assert names.count("cancelled trip") == len(report.cancelled)
     m = method_figure(report.rows)
     assert len(m.data) == 2 and len(m.data[0].y) == len(m.data[1].y) == 3
-    assert describe_sk(ev) == "porucha autobusu k585 o 07:00"
+    assert describe_event(ev) == "Bus k585 fails at 07:00"
     out = gantt_figure(data.inst, report.before, outage=("S3", 420, 540))
     assert out.layout.shapes and out.layout.shapes[0].x0 == 420
 
@@ -116,6 +116,6 @@ def test_streamlit_app(data):
     at.slider[2].set_value(1)                                  # p = 1 keeps the test fast
     [b for b in at.button if b.key == "go"][0].click().run()
     assert not at.exception and not at.error
-    assert [h.value for h in at.subheader] == ["porucha autobusu k585 o 07:00"]
+    assert [h.value for h in at.subheader] == ["Bus k585 fails at 07:00"]
     assert len(at.success) + len(at.warning) == 1              # verdict on the XY-QAOA answer
     assert len(at.get("plotly_chart")) >= 6
