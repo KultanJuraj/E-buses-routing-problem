@@ -1,4 +1,126 @@
-# E-VSP: data and instances (work package A)
+# E-bus scheduling with quantum optimization (E-VSP)
+
+Hybrid quantum-classical scheduling of battery-electric buses on real King County Metro
+data (route 150, Seattle). The project covers:
+
+- the daily schedule as a set-partitioning QUBO (variants E1–E4) solved with QAOA,
+- repair of the schedule after a bus failure or a charger outage with an XY-mixer QAOA
+  that never leaves the valid assignments,
+- classical baselines on the same problems (min-cost flow, MILP, greedy dispatcher,
+  exact repair, simulated annealing, tabu search),
+- a best-of-N solution-quality benchmark (QAOA vs simulated annealing),
+- a Streamlit demo and figures.
+
+Qollab × IonQ hackathon project. *This effort is supported by Qollab & IonQ.* MIT license.
+
+## What is in git and what you generate
+
+| folder | in git | content |
+|---|---|---|
+| `evsp/` | yes | library: instances, columns, QUBO, QAOA, XY-QAOA, repair, baselines, benchmark, viz |
+| `scripts/`, `app/`, `tools/`, `tests/` | yes | command-line steps, Streamlit demo, Qollab packaging, tests |
+| `instances/` | yes | the 4 bundled instances (tiny, small, medium, large) and their validation report |
+| `columns/` | yes | the duty pools used by QAOA, the repair and the demo. Small and reproduced byte for byte by step 3 |
+| `results/` | **no** | every experiment output (JSON, CSV, PNG). Run the steps below to create it |
+| `qubo/` | **no** | QUBO exports for external solvers (step 4). No script reads them: `run_qaoa.py` builds the QUBO from the columns |
+| `figures/`, `dist/`, `repair.png` | no | generated figures, the Qollab bundle, the `main.py` chart |
+| `external/` | no | optional GTFS source, only needed to rebuild the instances (step 1) |
+
+The experiments are not versioned. Every number in this README can be reproduced with
+the commands below. The tests do not need `results/`.
+
+## Quick start
+
+Python 3.11 or newer (tested with 3.13 and 3.14). From the repository root:
+
+```sh
+python -m pip install -r requirements.txt
+python -m pytest -q          # 178 tests, about 1–2 min
+python main.py               # end-to-end repair run (Qollab entry point), about 5 s
+```
+
+## Pipeline: how to work with the project
+
+Run the steps in this order. Each step reads only files that are in git or created by an
+earlier step. Times were measured on a 2-core cloud machine without a GPU.
+
+| step | command | writes | time |
+|---|---|---|---|
+| 0 | `python -m pip install -r requirements.txt` then `python -m pytest -q` | – | 1–2 min |
+| 1 *(optional)* | `python scripts/build_instances.py --source-revision <commit>` | `instances/*.json` | see [Rebuild from GTFS](#rebuild-from-gtfs) |
+| 2 | `python scripts/validate_instances.py` | `instances/baseline_validation.json` | < 1 s |
+| 3 *(optional)* | `python scripts/build_columns.py --instance instances/kcm_tiny.json --budget 20`<br>`python scripts/build_columns.py --instance instances/kcm_small.json --budget 20 --battery 200` | `columns/kcm_tiny_b20.json`, `columns/kcm_small_b20_bat200.json` | < 1 s each |
+| 4 *(optional)* | `python scripts/build_qubo.py --columns columns/kcm_small_b20_bat200.json --variant E4` | `qubo/<columns>_<variant>.json` | ~1 s |
+| 5 | `python scripts/run_classical.py` | `results/baselines.json` | ~1 min |
+| 6a | `python scripts/run_qaoa.py --columns columns/kcm_small_b20_bat200.json --variant E4 --classical-only --compare-peak` | `results/*_peak_comparison_classical.{json,csv}` | ~2 s |
+| 6b | `python scripts/run_qaoa.py --columns columns/kcm_small_b20_bat200.json --variant E4 --compare-peak` | `results/*_peak_comparison.{json,csv}` | ~6 min |
+| 6c | `python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E2 --scaling 8,10,12,16` | `results/*_scaling.{json,csv}` | ~10 s |
+| 7 | `python scripts/run_repair.py --bus k4 --at 06:00` | `results/repair_bus_k4_0600.json` | ~5 min |
+| 8 | `python scripts/run_benchmark.py` | `results/quality_benchmark.{json,csv}` + 3 PNG charts | ~20 s |
+| 9 | `python scripts/make_figures.py` | `figures/*.html` | ~5 s |
+| 10 | `streamlit run app/demo.py` | – (browser) | – |
+| 11 | `python tools/package_qollab.py` | `dist/qollab/`, `dist/qollab.zip` | < 1 s |
+
+Notes on the steps:
+
+- **Steps 1 and 3** regenerate inputs that are already in git. Step 3 reproduces the
+  bundled columns byte for byte. Run these steps only after you change the data or the
+  duty generator.
+- **Step 4** exports a QUBO as JSON, for inspection or an external solver. Nothing in
+  the pipeline depends on it.
+- **Step 6** runs QAOA on the daily schedule (package E):
+  - 6a gives the classical reference on the same QUBO: exact search, simulated annealing
+    and tabu search.
+  - 6b runs QAOA itself. It is the slowest step, because it simulates 20 qubits for two
+    values of R.
+  - 6c writes the scaling data that the demo's *Škálovanie* tab shows.
+- **Step 7 feeds the demo.** Penalty QAOA on 20 qubits is too slow to run live, so the
+  demo reads its numbers from `results/repair_bus_k4_0600.json`. Without the file the demo
+  still works, and the penalty-QAOA row says "skipped: … run scripts/run_repair.py". For
+  another event, use for example `--bus k585 --at 07:00` or
+  `--charger S3 --from 07:00 --to 09:00`.
+- **Step 8** draws the charts at the end. `python scripts/plot_benchmark.py` redraws them
+  from the saved JSON without recomputing.
+- **Steps 9–10** read whatever is in `results/`. Run 6c and 7 first to get all figures
+  and tabs.
+
+Run the whole pipeline (about 15 min, most of it steps 6b and 7):
+
+```sh
+python scripts/validate_instances.py
+python scripts/run_classical.py
+python scripts/run_qaoa.py --columns columns/kcm_small_b20_bat200.json --variant E4 --classical-only --compare-peak
+python scripts/run_qaoa.py --columns columns/kcm_small_b20_bat200.json --variant E4 --compare-peak
+python scripts/run_qaoa.py --columns columns/kcm_tiny_b20.json --variant E2 --scaling 8,10,12,16
+python scripts/run_repair.py --bus k4 --at 06:00
+python scripts/run_benchmark.py
+python scripts/make_figures.py
+streamlit run app/demo.py
+```
+
+## Qollab entry point (`main.py`)
+
+`main.py` is the file that runs on Qollab. It runs one repair event end to end:
+
+- the exact true-cost optimum, the greedy dispatcher rule and simulated annealing,
+- XY-mixer QAOA and penalty QAOA (penalty QAOA up to 18 qubits),
+- **one** XY-QAOA circuit transpiled and sampled on the backend that Qollab injects,
+  which fits IonQ's limit of one job per run,
+- the best-of-N comparison for the event,
+- a before/after chart, `repair.png`.
+
+```sh
+python main.py                        # bus k585 fails at 07:00, 14 qubits
+python main.py --bus k4 --at 06:00    # 20 qubits
+python main.py --shots 2000 --p 2
+```
+
+Without an injected `backend`, `main.py` falls back to Qiskit's `BasicSimulator`.
+
+To upload, run `python tools/package_qollab.py`. It copies only what `main.py` needs into
+`dist/qollab.zip` (19 files, about 233 KB; Qollab allows at most 100 files of up to 2 MB
+each). `QOLLAB.md` is the project page text and `requirements-qollab.txt` lists the
+runtime dependencies.
 
 ## QUBO builder (work package C)
 
@@ -47,10 +169,6 @@ intervals exceed a multi-connector station's capacity, even if some candidates a
 mutually exclusive. The LP/MILP still supports these capacity constraints. Reduce
 the pool or use `--no-depot-charging` to generate alternatives without depot charging.
 This check prevents unsafe export; it does not add a new QUBO capacity formulation.
-
-This PR prepares versioned input data for duty generation (B), QUBO construction
-(C), and quantum solvers (E). It does not generate battery-feasible duties or
-solve a schedule. `main.py` is an independent Qiskit Bell-state smoke test.
 
 ## Classical baselines (work package D)
 
@@ -112,7 +230,7 @@ term, so they are not claimed as results on the selected QAOA QUBO.
   - `exact_repair` replays every one-hot assignment, so it counts reserve activation
     once and finds the true-cost optimum.
 
-Results on the bundled data (battery 200 kWh for the electric part):
+Results of `python scripts/run_classical.py` (battery 200 kWh for the electric part):
 
 | | tiny | small | medium | large |
 |---|---:|---:|---:|---:|
@@ -129,6 +247,57 @@ Repair, 38 bus failures of the 5-bus demo schedule:
 
 On this problem size, classical methods are therefore fast and exact. The quantum part has to
 be judged by how it scales and by how well the circuit design works, not by solution quality on these instances.
+
+## Solution-quality benchmark: QAOA vs simulated annealing (best of N samples)
+
+```sh
+python scripts/run_benchmark.py      # 5 repair events, ~20 s; results/quality_benchmark.{json,csv} + charts
+python scripts/plot_benchmark.py     # redraw the 3 charts from the saved JSON
+python scripts/run_benchmark.py --events k4@06:00 S3@07:00-09:00 --budgets 1 10 100 --p-max 3
+```
+
+Events are written `bus@HH:MM` (bus failure) or `station@HH:MM-HH:MM` (charger outage).
+`--no-plot` skips the charts.
+
+QAOA and simulated annealing are both samplers: one shot or one annealing run gives
+one candidate repair. A dispatcher takes N candidates, replays them and keeps the
+cheapest. `evsp/benchmark.py` works this out as follows:
+
+1. It replays every valid assignment once to get its **true** extra cost. Reserve
+   activation is counted once per bus. A sample that is not a valid repair counts as
+   the cancel-all fallback.
+2. For each method it builds the cost distribution of one sample:
+   - XY-mixer QAOA and penalty QAOA from the exact statevector,
+   - simulated annealing from independent runs,
+   - two random baselines (uniform over valid assignments, uniform over all bitstrings).
+3. It computes exactly, without Monte Carlo noise:
+   - P(the best of N samples is the true optimum) = 1 − (1 − p_opt)^N,
+   - the expected cost of the best of N samples, from P(min ≥ v) = P(X ≥ v)^N.
+
+The script writes three charts to `results/`:
+
+- `quality_benchmark.png`: P(best of N = optimum) vs N, one panel per event.
+- `quality_benchmark_gap.png`: expected extra cost above the optimum.
+- `quality_benchmark_samples.png`: samples needed for 95 % confidence.
+
+Results with the default settings, P(the best of N samples is the true optimum),
+XY-QAOA (p = 2) vs simulated annealing (500 sweeps):
+
+| event | qubits | N = 10 | N = 30 | N = 100 |
+|---|---:|---:|---:|---:|
+| k585 fails 07:00 | 14 | 0.54 vs 0.40 | 0.90 vs 0.78 | 1.00 vs 0.99 |
+| k190 fails 05:00 | 15 | 0.39 vs 0.57 | 0.78 vs 0.92 | 0.99 vs 1.00 |
+| k4 fails 06:00 | 20 | 0.58 vs 0.27 | 0.93 vs 0.61 | 1.00 vs 0.96 |
+| S3 out 07:00–09:00 | 21 | 0.35 vs 0.16 | 0.73 vs 0.41 | 0.99 vs 0.83 |
+| k585 fails 05:00 | 22 | 0.22 vs 0.04 | 0.52 vs 0.11 | 0.91 vs 0.33 |
+
+- XY-QAOA needs fewer samples in 4 of 5 events, and the gap grows with the problem size.
+- Penalty QAOA (n ≤ 18) is far behind both.
+- How to read this:
+  - One QAOA sample is one circuit shot. One SA sample is a full annealing run, which
+    costs much more classically.
+  - QAOA is simulated without noise, and its angle optimization is not counted.
+  - On these sizes, the exact optimum by full replay takes under a second.
 
 ## Visualization and demo (work package G)
 
@@ -155,12 +324,15 @@ The demo loads the 5-bus optimum of `columns/kcm_small_b20_bat200.json` on
   and a label), the cost change, P(optimum) and P(feasible) per method, shots for
   95 % confidence and the XY circuit size (all-to-all and heavy-hex).
 - **Škálovanie**: penalty QAOA vs SA vs random guessing from
-  `results/*_scaling.json` (`scripts/run_qaoa.py --scaling 8,10,12,16`).
+  `results/*_scaling.json` (pipeline step 6c). Without that file, the tab shows the
+  command that creates it.
 
 Penalty QAOA uses a 2^n statevector, so it is run live only up to 16 qubits.
 Larger events use a matching `results/repair_<event>.json` from
-`scripts/run_repair.py`. The repository includes the result for bus `k4` at
-06:00, which has 20 qubits and takes about 6 minutes. The live demo refuses
+`scripts/run_repair.py` (pipeline step 7). For example, the default event, bus `k4`
+failing at 06:00, has 20 qubits and takes about 5 minutes. The demo uses the file only
+if its event, trips, options and conflicts match the current problem. Otherwise it
+shows the penalty-QAOA row as skipped. The live demo refuses
 events with more than 100 000 one-hot states. For example, S3 out of service
 06:00–08:00 has 60 qubits and 21 million states. Lower the number of reserves or
 options per trip, or use `scripts/run_repair.py`.
@@ -172,7 +344,7 @@ a failure, move, cancellation or outage, also has a text label.
 
 ## Setup and checks
 
-Use Python 3.11 or newer; the pinned dependencies were tested with Python 3.14.3.
+Use Python 3.11 or newer; the pinned dependencies were tested with Python 3.13 and 3.14.
 From the repository root, using the project's configured interpreter:
 
 ```sh
@@ -180,6 +352,9 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 python scripts/validate_instances.py
 ```
+
+The tests use only files in git. A test that needs a results file writes its own copy
+in a temporary folder, so a fresh clone passes all 178 tests.
 
 Validation of the bundled instances does not need the original GTFS download.
 The validation script writes `instances/baseline_validation.json`. Schema errors
@@ -218,8 +393,8 @@ otherwise its coordinates are the terminal centroid, explicitly marked synthetic
 | large | 601 | All trips of blocks touching the study routes |
 
 The medium preset exceeds the document's suggested 50–100 trips. An energy-stress
-tiny, a disruption event format, and a fixed-seed synthetic generator remain
-follow-up work. The current tiny is not evidence that charging constraints work.
+tiny and a fixed-seed synthetic generator remain follow-up work. The current tiny is
+not evidence that charging constraints work.
 
 ## Contract: schema 1.0
 
@@ -267,7 +442,9 @@ The current case-study configuration uses 419.4 kWh usable capacity, 1.8641 kWh/
 SoC 10–100%, initial SoC 100%, charging efficiency 90%, site connectors of 300 kW,
 and ten assumed 150 kW depot connectors. These differ from the document's suggested
 200–300 kWh, 1–1.5 kWh/km and 20–90% SoC. They are explicitly retained for the KCM
-case study, not presented as the document's numerical defaults.
+case study, not presented as the document's numerical defaults. The electric
+experiments override the battery to 200 kWh (`--battery 200`) so that buses must
+charge during the day.
 
 Terminals use shape endpoints because the source lacks `stops.txt`. Deadhead
 distance is great-circle distance times 1.3, at 30 km/h (the document suggests

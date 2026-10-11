@@ -116,6 +116,7 @@ class SAResult:
     p_feasible: Optional[float]
     seconds: float
     params: dict = field(default_factory=dict)
+    states: Optional[np.ndarray] = None   # [reads, n] final bitstring of every read
 
 
 def simulated_annealing(q: QUBO, reads: int = 100, sweeps: int = 1000, t_start: Optional[float] = None,
@@ -158,7 +159,8 @@ def simulated_annealing(q: QUBO, reads: int = 100, sweeps: int = 1000, t_start: 
         p_feas = float(np.mean(landscape.feasible[idx]))
     return SAResult(best_x=x[best].astype(int), best_energy=float(finals[best]), energies=finals,
                     p_optimal=p_opt, p_feasible=p_feas, seconds=time.time() - t0,
-                    params={"reads": reads, "sweeps": sweeps, "t_start": t_start, "t_end": t_end, "seed": seed})
+                    params={"reads": reads, "sweeps": sweeps, "t_start": t_start, "t_end": t_end, "seed": seed},
+                    states=x.astype(np.int8))
 
 
 @dataclass
