@@ -1,10 +1,11 @@
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 pytest.importorskip("plotly")
 
-from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, solve_disruption  # noqa: E402
+from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, saved_qaoa_schedule, solve_disruption  # noqa: E402
 from evsp.disruption import Disruption  # noqa: E402
 from evsp.viz import (describe_event, gantt_figure, hhmm, method_figure, power_figure, scaling_figure,  # noqa: E402
                       schedule_kpis, soc_figure, soc_timeline)
@@ -56,6 +57,16 @@ def test_schedule_figures(data):
     assert {tr.name for tr in p.data} == {ch.station for c in duties.values() for ch in c.charges}
     assert any("peak" in a.text for a in p.layout.annotations)
     assert power_figure({}).layout.annotations[0].text.startswith("no charging")
+
+
+def test_saved_qaoa_schedule(data, tmp_path):
+    schedule, sample = saved_qaoa_schedule(data)
+    assert sample["best_raw_index"] == 296004
+    assert set(schedule.duties) == set(data.schedule.duties)
+    assert sum(col.n_trips for col in schedule.duties.values()) == len(data.inst.trips)
+    changed_columns = tmp_path / data.columns_path.name
+    changed_columns.write_text("{}", encoding="utf-8")
+    assert saved_qaoa_schedule(replace(data, columns_path=changed_columns)) is None
 
 
 def test_repair_report(data, report):
@@ -110,6 +121,7 @@ def test_streamlit_app(data):
 
     at = AppTest.from_file(str(ROOT / "app" / "demo.py"), default_timeout=120).run()
     assert not at.exception
+    assert at.radio[0].value == "QAOA sample"
     assert [m.value for m in at.metric][:2] == ["5", "20"]
     at.selectbox[0].set_value("k585")
     at.select_slider[0].set_value(7 * 60)

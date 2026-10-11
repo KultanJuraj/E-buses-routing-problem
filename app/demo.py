@@ -3,8 +3,8 @@
     pip install -r requirements.txt
     streamlit run app/demo.py
 
-Tab "Schedule": the 5-bus schedule of columns/kcm_small_b20_bat200.json (trips, charging,
-battery, grid load). Tab "Disruption": pick a bus and a time (or a charger and a window),
+Tab "Schedule": a saved QAOA sample by default, with the MILP schedule available for comparison
+(trips, charging, battery, grid load). Tab "Disruption": pick a bus and a time (or a charger and a window),
 press "Break the bus" and the repair subproblem is solved exactly, with simulated
 annealing, with XY-mixer QAOA and (up to 16 qubits, or from results/) with penalty QAOA.
 Tab "Scaling": penalty QAOA on growing E-VSP instances (results/*_scaling.json).
@@ -23,7 +23,7 @@ if str(ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, peak_schedules, solve_disruption  # noqa: E402
+from evsp.demo import DEFAULT_COLUMNS, DEFAULT_INSTANCE, load_demo_data, peak_schedules, saved_qaoa_schedule, solve_disruption  # noqa: E402
 from evsp.disruption import Disruption  # noqa: E402
 from evsp.viz import (describe_event, gantt_figure, hhmm, method_figure, peak_comparison_figure, power_figure,  # noqa: E402
                       scaling_figure, schedule_kpis, soc_figure)
@@ -93,9 +93,19 @@ tab_plan, tab_fail, tab_scale = st.tabs(["Schedule", "Disruption", "Scaling"])
 
 # --------------------------------------------------------------------------- schedule
 with tab_plan:
-    duties = d.schedule.duties
+    qaoa_saved = saved_qaoa_schedule(d)
+    sources = ["QAOA sample", "MILP reference"] if qaoa_saved else ["MILP reference"]
+    source = st.radio("Schedule source", sources, horizontal=True)
+    duties = qaoa_saved[0].duties if source == "QAOA sample" else d.schedule.duties
     kpi_row(schedule_kpis(duties))
-    chart(gantt_figure(d.inst, duties, title="Optimal schedule (QUBO E4 / MILP)"), "g0")
+    chart(gantt_figure(d.inst, duties, title=f"Schedule from {source}"), "g0")
+    if source == "QAOA sample":
+        sample = qaoa_saved[1]
+        st.caption(f"Ideal statevector QAOA, E4 with R={sample['R']:g}, p={sample['p']}, "
+                   f"seed {sample['seed']}: {sample['observed_feasible_shots']} feasible shots "
+                   f"out of {sample['shots']:,}. P(feasible) = {sample['p_feasible_statevector']:.4%}.")
+        if set(duties) == set(d.schedule.duties):
+            st.caption("The QAOA sample and MILP reference select the same duties on this pool.")
     left, right = st.columns(2)
     chart(soc_figure(d.inst, duties), "soc0", left)
     chart(power_figure(duties), "pow0", right)
