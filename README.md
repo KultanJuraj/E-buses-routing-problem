@@ -1,4 +1,6 @@
-# E-bus scheduling with quantum optimization (E-VSP)
+# Single-Depot Vehicle Scheduling Problem (VSP) for Electric Buses
+
+*This effort is supported by Qollab & IonQ.*
 
 Hybrid quantum-classical scheduling of battery-electric buses on real King County Metro
 data (route 150, Seattle). The project covers:
@@ -35,8 +37,9 @@ Python 3.11 or newer (tested with 3.13 and 3.14). From the repository root:
 
 ```sh
 python -m pip install -r requirements.txt
-python -m pytest -q          # 178 tests, about 1–2 min
-python main.py               # end-to-end repair run (Qollab entry point), about 5 s
+python -m pytest -q          # 180 tests, about 2 min
+python main.py               # daily-schedule comparison + repair (Qollab entry point), about 4 min
+python main.py --repair-only # repair only, about 5 s
 ```
 
 ## Pipeline: how to work with the project
@@ -108,7 +111,6 @@ schedule without a disruption. It then runs one repair event end to end:
 - XY-mixer QAOA and penalty QAOA (penalty QAOA up to 18 qubits),
 - **one** XY-QAOA circuit transpiled and sampled on the backend that Qollab injects,
   which fits IonQ's limit of one job per run,
-- the best-of-N comparison for the event,
 - a before/after chart, `repair.png`.
 
 Both comparisons are saved to `results/main_bus_<bus>_<time>.json`. The daily
@@ -370,7 +372,7 @@ python scripts/validate_instances.py
 ```
 
 The tests use only files in git. A test that needs a results file writes its own copy
-in a temporary folder, so a fresh clone passes all 178 tests.
+in a temporary folder, so a fresh clone passes all 180 tests.
 
 Validation of the bundled instances does not need the original GTFS download.
 The validation script writes `instances/baseline_validation.json`. Schema errors
