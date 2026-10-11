@@ -129,13 +129,13 @@ def solve_disruption(data: DemoData, event: Disruption, reserves: int = 3, max_b
             land = Landscape.from_qubo(q)
             pq = run_qaoa(q, land, p_max=p_max, shots=1000, seed=seed)
             bp = max(pq.layers, key=lambda L: L.p_optimal)
-            penalty_row = {"method": "QAOA, X mixer + pokuty", "p_optimal": bp.p_optimal,
+            penalty_row = {"method": "QAOA, X mixer + penalties", "p_optimal": bp.p_optimal,
                            "p_feasible": bp.p_feasible, "p": bp.p}
             seconds["penalty_qaoa"] = time.time() - t0
             source = "computed"
         else:
             penalty_row, source = _precomputed_penalty(event, rp, precomputed)
-    rows.insert(0, penalty_row or {"method": "QAOA, X mixer + pokuty", "p_optimal": None, "p_feasible": None,
+    rows.insert(0, penalty_row or {"method": "QAOA, X mixer + penalties", "p_optimal": None, "p_feasible": None,
                                    "p": None})
     if penalty_row is None and not source:
         source = "skipped"
@@ -188,5 +188,5 @@ def _precomputed_penalty(event: Disruption, rp: RepairProblem, path: Optional[Pa
             or "penalty_qaoa" not in raw):
         return None, f"skipped: {path.name} does not match this problem"
     best = max(raw["penalty_qaoa"]["layers"], key=lambda L: L["p_optimal"])
-    return ({"method": "QAOA, X mixer + pokuty", "p_optimal": best["p_optimal"], "p_feasible": best["p_feasible"],
+    return ({"method": "QAOA, X mixer + penalties", "p_optimal": best["p_optimal"], "p_feasible": best["p_feasible"],
              "p": best["p"]}, f"precomputed {path.name}")

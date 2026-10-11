@@ -50,14 +50,14 @@ def _time_axis(fig, lo: float, hi: float):
     start, end = int(math.floor(lo / 60)), int(math.ceil(hi / 60))
     ticks = list(range(start * 60, end * 60 + 1, 60))
     fig.update_xaxes(range=[lo - 10, hi + 10], tickvals=ticks, ticktext=[hhmm(t) for t in ticks],
-                     title_text="čas")
+                     title_text="time")
 
 
-def describe_sk(event) -> str:
-    """Slovak label of a evsp.disruption.Disruption."""
+def describe_event(event) -> str:
+    """Short English label of a evsp.disruption.Disruption."""
     if event.kind == "bus":
-        return f"porucha autobusu {event.bus} o {hhmm(event.at_min)}"
-    return f"výpadok nabíjačky {event.station} {hhmm(event.at_min)}-{hhmm(event.until_min)}"
+        return f"Bus {event.bus} fails at {hhmm(event.at_min)}"
+    return f"Charger {event.station} out of service {hhmm(event.at_min)}-{hhmm(event.until_min)}"
 
 
 # --------------------------------------------------------------------------- battery replay
@@ -102,14 +102,14 @@ def soc_timeline(inst: Instance, col: Column) -> tuple[list[float], list[float]]
 
 # --------------------------------------------------------------------------- schedule
 
-def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh vozidiel",
+def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Vehicle schedule",
                  failed: Optional[dict[str, float]] = None, moved: Optional[dict[str, str]] = None,
                  cancelled: Optional[list[str]] = None, outage: Optional[tuple[str, float, float]] = None,
                  height: Optional[int] = None):
     """One row per bus: trips (blue, orange if reassigned), charging (aqua, station label), deadheads (gray).
 
     failed: {bus: time} draws the failure point; moved: {trip: new bus}; cancelled: trips shown on
-    their own row "zrušené"; outage: (station, from, to) shades the charger outage window.
+    their own row "cancelled"; outage: (station, from, to) shades the charger outage window.
     """
     import plotly.graph_objects as go
 
@@ -117,7 +117,7 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
     failed, moved, cancelled = failed or {}, moved or {}, list(cancelled or [])
     rows = sorted(duties, key=lambda b: (b.startswith("R"), duties[b].start_min if duties[b] else 0))
     if cancelled:
-        rows.append("zrušené")
+        rows.append("cancelled")
     fig = go.Figure()
     shown = set()
 
@@ -125,7 +125,7 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
         fig.add_trace(go.Bar(
             y=[row], x=[end - start], base=[start], orientation="h", marker={
                 "color": color, "line": {"color": SURFACE, "width": 2},
-                "pattern": {"shape": pattern, "fgcolor": "white"} if pattern else None},
+                "pattern": {"shape": pattern, "fgcolor": "white", "fillmode": "overlay"} if pattern else None},
             name=name, legendgroup=name, showlegend=name not in shown, hovertemplate=hover + "<extra></extra>",
             text=text, textposition="inside", insidetextanchor="middle", textfont={"color": "white", "size": 11},
         ))
@@ -133,11 +133,11 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
 
     lo, hi = math.inf, -math.inf
     for bus in rows:
-        if bus == "zrušené":
+        if bus == "cancelled":
             for tid in cancelled:
                 t = tb[tid]
-                bar(bus, t.dep_min, t.arr_min, CRITICAL, "zrušený spoj",
-                    f"<b>zrušený spoj {tid}</b><br>{hhmm(t.dep_min)}-{hhmm(t.arr_min)}", text="zrušené",
+                bar(bus, t.dep_min, t.arr_min, CRITICAL, "cancelled trip",
+                    f"<b>cancelled trip {tid}</b><br>{hhmm(t.dep_min)}-{hhmm(t.arr_min)}", text="cancelled",
                     pattern="/")
             continue
         col = duties[bus]
@@ -145,8 +145,8 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
             continue
         lo, hi = min(lo, col.start_min), max(hi, col.end_min)
         first = tb[col.trips[0]]
-        bar(bus, col.start_min, first.dep_min, GRAY, "prázdny presun",
-            f"<b>{bus}</b> výjazd z depa<br>{hhmm(col.start_min)}-{hhmm(first.dep_min)}")
+        bar(bus, col.start_min, first.dep_min, GRAY, "deadhead",
+            f"<b>{bus}</b> pull-out from depot<br>{hhmm(col.start_min)}-{hhmm(first.dep_min)}")
         for prev_id, next_id in zip(col.trips, col.trips[1:]):
             prev, nxt = tb[prev_id], tb[next_id]
             gap_charge = next((ch for ch in col.charges
@@ -159,8 +159,8 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
             for origin, dest, start in legs:
                 end = start + inst.dh_min(origin, dest)
                 if end > start:
-                    bar(bus, start, end, GRAY, "prázdny presun",
-                        f"<b>{bus}</b> presun<br>{hhmm(start)}-{hhmm(end)}")
+                    bar(bus, start, end, GRAY, "deadhead",
+                        f"<b>{bus}</b> deadhead<br>{hhmm(start)}-{hhmm(end)}")
         last = tb[col.trips[-1]]
         home_charge = next((ch for ch in col.charges if ch.start_min >= last.arr_min), None)
         if home_charge:
@@ -169,22 +169,22 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
             for origin, dest, start in legs:
                 end = start + inst.dh_min(origin, dest)
                 if end > start:
-                    bar(bus, start, end, GRAY, "prázdny presun",
-                        f"<b>{bus}</b> návrat do depa<br>{hhmm(start)}-{hhmm(end)}")
+                    bar(bus, start, end, GRAY, "deadhead",
+                        f"<b>{bus}</b> return to depot<br>{hhmm(start)}-{hhmm(end)}")
         else:
-            bar(bus, last.arr_min, col.end_min, GRAY, "prázdny presun",
-                f"<b>{bus}</b> návrat do depa<br>{hhmm(last.arr_min)}-{hhmm(col.end_min)}")
+            bar(bus, last.arr_min, col.end_min, GRAY, "deadhead",
+                f"<b>{bus}</b> return to depot<br>{hhmm(last.arr_min)}-{hhmm(col.end_min)}")
         for tid in col.trips:
             t = tb[tid]
             is_moved = tid in moved
             bar(bus, t.dep_min, t.arr_min, ORANGE if is_moved else BLUE,
-                "presunutý spoj" if is_moved else "spoj",
-                f"<b>{bus}</b> spoj {tid} (linka {t.route})<br>{hhmm(t.dep_min)}-{hhmm(t.arr_min)}, "
-                f"{t.dist_km:.1f} km, {t.energy_kwh:.0f} kWh" + ("<br>presunutý po výpadku" if is_moved else ""),
-                text="presun" if is_moved else "")
+                "reassigned trip" if is_moved else "trip",
+                f"<b>{bus}</b> trip {tid} (route {t.route})<br>{hhmm(t.dep_min)}-{hhmm(t.arr_min)}, "
+                f"{t.dist_km:.1f} km, {t.energy_kwh:.0f} kWh" + ("<br>reassigned after the disruption" if is_moved else ""),
+                text="moved" if is_moved else "")
         for ch in col.charges:
-            bar(bus, ch.start_min, ch.end_min, AQUA, "nabíjanie",
-                f"<b>{bus}</b> nabíjanie {ch.station}<br>{hhmm(ch.start_min)}-{hhmm(ch.end_min)}, "
+            bar(bus, ch.start_min, ch.end_min, AQUA, "charging",
+                f"<b>{bus}</b> charging at {ch.station}<br>{hhmm(ch.start_min)}-{hhmm(ch.end_min)}, "
                 f"{ch.power_kw:.0f} kW, {ch.grid_kwh:.0f} kWh<br>SoC {ch.soc_before:.0%} → {ch.soc_after:.0%}",
                 text=ch.station)
     for bus, at in failed.items():
@@ -192,8 +192,8 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
             fig.add_trace(go.Scatter(
                 x=[at], y=[bus], mode="markers+text", marker={"symbol": "x", "size": 14, "color": CRITICAL,
                                                               "line": {"width": 2, "color": CRITICAL}},
-                text=["výpadok"], textposition="top center", textfont={"color": CRITICAL},
-                name="výpadok", hovertemplate=f"<b>{bus}</b> výpadok o {hhmm(at)}<extra></extra>"))
+                text=["failure"], textposition="top center", textfont={"color": CRITICAL},
+                name="failure", hovertemplate=f"<b>{bus}</b> fails at {hhmm(at)}<extra></extra>"))
             lo = min(lo, at)
     for tid in cancelled:
         lo, hi = min(lo, tb[tid].dep_min), max(hi, tb[tid].arr_min)
@@ -201,14 +201,14 @@ def gantt_figure(inst: Instance, duties: dict[str, Column], title: str = "Rozvrh
         st, a, b = outage
         fig.add_vrect(x0=a, x1=b, fillcolor=CRITICAL, opacity=0.08, line_width=0, layer="below")
         fig.add_annotation(x=a, y=1.0, xref="x", yref="paper", xanchor="left", yanchor="bottom", showarrow=False,
-                           text=f"{st} mimo prevádzky {hhmm(a)}-{hhmm(b)}", font={"color": CRITICAL, "size": 11})
+                           text=f"{st} out of service {hhmm(a)}-{hhmm(b)}", font={"color": CRITICAL, "size": 11})
     fig.update_layout(barmode="overlay")
     fig.update_yaxes(categoryorder="array", categoryarray=list(reversed(rows)), title_text="")
     _time_axis(fig, lo, hi)
     return _layout(fig, title, height or 110 + 46 * len(rows))
 
 
-def soc_figure(inst: Instance, duties: dict[str, Column], title: str = "Stav batérie (SoC)"):
+def soc_figure(inst: Instance, duties: dict[str, Column], title: str = "Battery state of charge (SoC)"):
     """SoC of every bus over the day; the dashed line is the minimum allowed SoC."""
     import plotly.graph_objects as go
 
@@ -234,7 +234,7 @@ def soc_figure(inst: Instance, duties: dict[str, Column], title: str = "Stav bat
     return _layout(fig, title, 380)
 
 
-def power_figure(duties: dict[str, Column], slot_min: int = 15, title: str = "Odber zo siete pri nabíjaní"):
+def power_figure(duties: dict[str, Column], slot_min: int = 15, title: str = "Grid power for charging"):
     """Charging power per 15-min slot, stacked by station; the peak is labeled."""
     import plotly.graph_objects as go
 
@@ -248,7 +248,7 @@ def power_figure(duties: dict[str, Column], slot_min: int = 15, title: str = "Od
                 load[st][t] += kw
     fig = go.Figure()
     if not load:
-        fig.add_annotation(text="žiadne nabíjanie počas dňa", showarrow=False, x=0.5, y=0.5,
+        fig.add_annotation(text="no charging during the day", showarrow=False, x=0.5, y=0.5,
                            xref="paper", yref="paper", font={"color": TEXT_2})
         return _layout(fig, title, 260)
     slots = sorted({t for prof in load.values() for t in prof})
@@ -264,10 +264,10 @@ def power_figure(duties: dict[str, Column], slot_min: int = 15, title: str = "Od
             customdata=[f"{hhmm(t * slot_min)}-{hhmm((t + 1) * slot_min)}" for t in xs],
             hovertemplate=f"<b>{st}</b> %{{customdata}}: %{{y:.0f}} kW<extra></extra>"))
     k = int(np.argmax(total))
-    fig.add_annotation(x=xs[k] * slot_min + slot_min / 2, y=total[k], text=f"špička {total[k]:.0f} kW",
+    fig.add_annotation(x=xs[k] * slot_min + slot_min / 2, y=total[k], text=f"peak {total[k]:.0f} kW",
                        showarrow=True, arrowhead=0, ay=-28, font={"color": TEXT})
     fig.update_layout(barmode="stack")
-    fig.update_yaxes(title_text="výkon [kW]", rangemode="tozero")
+    fig.update_yaxes(title_text="power [kW]", rangemode="tozero")
     _time_axis(fig, t_lo * slot_min, (t_hi + 1) * slot_min)
     return _layout(fig, title, 320)
 
@@ -287,24 +287,24 @@ def peak_comparison_figure(schedules: dict[str, dict[str, Column]], slot_min: in
     slots = sorted({slot for load in profiles.values() for slot in load})
     fig = go.Figure()
     if not slots:
-        fig.add_annotation(text="Žiadne nabíjanie", showarrow=False)
-        return _layout(fig, "Výkon siete: R=0 oproti R>0", 320)
+        fig.add_annotation(text="No charging", showarrow=False)
+        return _layout(fig, "Grid power: R=0 vs R>0", 320)
     xs = list(range(slots[0], slots[-1] + 1))
     for label, color, dash in (("R=0", ORANGE, "dash"), ("R>0", BLUE, "solid")):
         load = profiles[label]
         peak = max(load.values(), default=0.0)
         fig.add_trace(go.Scatter(x=[(slot + 0.5) * slot_min for slot in xs],
                                  y=[load.get(slot, 0.0) for slot in xs], mode="lines+markers",
-                                 name=f"{label} (špička {peak:.0f} kW)",
+                                 name=f"{label} (peak {peak:.0f} kW)",
                                  line={"color": color, "dash": dash, "width": 2},
                                  marker={"size": 5},
                                  hovertemplate=f"{label}: %{{y:.0f}} kW<extra></extra>"))
     if set(schedules["R=0"]) == set(schedules["R>0"]):
         fig.add_annotation(x=0.5, y=0.95, xref="paper", yref="paper", showarrow=False,
-                           text="Rovnaký prípustný rozvrh pre obe váhy R")
-    fig.update_yaxes(title_text="výkon siete [kW]", rangemode="tozero")
+                           text="Same feasible schedule for both weights R")
+    fig.update_yaxes(title_text="grid power [kW]", rangemode="tozero")
     _time_axis(fig, xs[0] * slot_min, (xs[-1] + 1) * slot_min)
-    return _layout(fig, "Výkon siete: R=0 oproti R>0", 320)
+    return _layout(fig, "Grid power: R=0 vs R>0", 320)
 
 
 def schedule_kpis(duties: dict[str, Column], slot_min: int = 15) -> dict:
@@ -324,14 +324,14 @@ def schedule_kpis(duties: dict[str, Column], slot_min: int = 15) -> dict:
 
 # --------------------------------------------------------------------------- solver comparison
 
-def method_figure(rows: list[dict], title: str = "Ako často metóda nájde optimálny plán"):
+def method_figure(rows: list[dict], title: str = "How often each method finds the optimal plan"):
     """Two small panels (no shared y-scale): P(optimum) and P(feasible) per method."""
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
     rows = [r for r in rows if r.get("p_optimal") is not None]
     names = [r["method"] for r in rows]
-    fig = make_subplots(rows=1, cols=2, subplot_titles=("P(optimum)", "P(prípustné riešenie)"),
+    fig = make_subplots(rows=1, cols=2, subplot_titles=("P(optimum)", "P(valid solution)"),
                         horizontal_spacing=0.22)
     colors = [ORANGE if "XY" in n else (BLUE if "QAOA" in n else GRAY) for n in names]
     fig.add_trace(go.Bar(y=names, x=[r["p_optimal"] for r in rows], orientation="h", marker_color=colors,
@@ -339,31 +339,31 @@ def method_figure(rows: list[dict], title: str = "Ako často metóda nájde opti
                          hovertemplate="%{y}: %{x:.4f}<extra></extra>", showlegend=False), row=1, col=1)
     feas = [r.get("p_feasible") for r in rows]          # not measured for SA: labeled, no bar
     fig.add_trace(go.Bar(y=names, x=[v or 0.0 for v in feas], orientation="h", marker_color=colors,
-                         text=["nemerané" if v is None else f"{v:.2f}" for v in feas], textposition="outside",
+                         text=["not measured" if v is None else f"{v:.2f}" for v in feas], textposition="outside",
                          hovertemplate="%{y}: %{x:.3f}<extra></extra>", showlegend=False), row=1, col=2)
     top = max([r["p_optimal"] for r in rows] + [1e-3])
     fig.update_xaxes(range=[0, top * 1.35], row=1, col=1)
     fig.update_xaxes(range=[0, 1.15], row=1, col=2)
-    fig.update_yaxes(autorange="reversed")
+    fig.update_yaxes(autorange="reversed", automargin=True)
     return _layout(fig, title, 120 + 48 * len(rows))
 
 
-def scaling_figure(rows: list[dict], title: str = "QAOA s pokutami slabne s veľkosťou problému"):
+def scaling_figure(rows: list[dict], title: str = "Penalty QAOA fades as the problem grows"):
     """P(optimum) vs qubits for QAOA, simulated annealing and random guessing (log scale)."""
     import plotly.graph_objects as go
 
     n = [r["qubits"] for r in rows]
     fig = go.Figure()
     series = [("simulated annealing", [r["sa_p_optimal"] for r in rows], GRAY),
-              ("QAOA (najlepšie p ≤ 3)", [r["best_p_optimal"] for r in rows], BLUE),
-              ("náhodný výber", [r["uniform_p_optimal"] for r in rows], TEXT_2)]
+              ("QAOA (best p ≤ 3)", [r["best_p_optimal"] for r in rows], BLUE),
+              ("random guess", [r["uniform_p_optimal"] for r in rows], TEXT_2)]
     for name, ys, color in series:
         fig.add_trace(go.Scatter(x=n, y=ys, mode="lines+markers", name=name,
-                                 line={"color": color, "width": 2, "dash": "dot" if "náhod" in name else None},
+                                 line={"color": color, "width": 2, "dash": "dot" if "random" in name else None},
                                  marker={"size": 8, "line": {"color": SURFACE, "width": 2}},
-                                 hovertemplate=f"{name}, %{{x}} qubitov: %{{y:.2e}}<extra></extra>"))
+                                 hovertemplate=f"{name}, %{{x}} qubits: %{{y:.2e}}<extra></extra>"))
         fig.add_annotation(x=n[-1], y=math.log10(max(ys[-1], 1e-12)), text=name, showarrow=False,
                            xanchor="left", xshift=6, font={"color": TEXT_2, "size": 11})
     fig.update_yaxes(type="log", title_text="P(optimum)", exponentformat="power")
-    fig.update_xaxes(title_text="počet qubitov", tickvals=n)
+    fig.update_xaxes(title_text="qubits", tickvals=n)
     return _layout(fig, title, 380, margin_r=170)
