@@ -100,7 +100,9 @@ streamlit run app/demo.py
 
 ## Qollab entry point (`main.py`)
 
-`main.py` is the file that runs on Qollab. It runs one repair event end to end:
+`main.py` is the file that runs on Qollab. By default, one run first compares
+MILP, exact QUBO search, simulated annealing, tabu search, and QAOA on the daily
+schedule without a disruption. It then runs one repair event end to end:
 
 - the exact true-cost optimum, the greedy dispatcher rule and simulated annealing,
 - XY-mixer QAOA and penalty QAOA (penalty QAOA up to 18 qubits),
@@ -109,10 +111,19 @@ streamlit run app/demo.py
 - the best-of-N comparison for the event,
 - a before/after chart, `repair.png`.
 
+Both comparisons are saved to `results/main_bus_<bus>_<time>.json`. The daily
+schedule section uses the same 20-duty pool for all methods; the MILP minimizes
+duty cost without the E4 peak term, so its objective is labeled separately and
+its selected schedule is also evaluated under E4. A full daily-schedule QAOA
+simulation can take several minutes. Add `--repair-only` to skip it.
+Use `--schedule-only` to run and log the disruption-free comparison alone.
+
 ```sh
 python main.py                        # bus k585 fails at 07:00, 14 qubits
 python main.py --bus k4 --at 06:00    # 20 qubits
 python main.py --shots 2000 --p 2
+python main.py --repair-only             # original disruption-only run
+python main.py --schedule-only           # daily schedule, no disruption
 ```
 
 Without an injected `backend`, `main.py` falls back to Qiskit's `BasicSimulator`.
